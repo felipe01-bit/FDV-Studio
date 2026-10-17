@@ -9,6 +9,10 @@ import java.awt.event.KeyEvent;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 public class VentanillaCajaView extends JFrame {
 
@@ -17,8 +21,10 @@ public class VentanillaCajaView extends JFrame {
     private JRadioButton rbDeposito, rbRetiro;
     private JButton btnVerificar, btnProcesar, btnLimpiar;
     
-    private double saldoActual = 350000.00;
-    private String estadoCuentaActual = "ACTIVA";
+    // Variables de estado real cargadas desde la Base de Datos
+    private int idCuentaActual = -1;
+    private double saldoActual = 0.00;
+    private String estadoCuentaActual = "";
 
     public VentanillaCajaView() {
         // 1. Configuración de la Ventana Principal
@@ -82,7 +88,7 @@ public class VentanillaCajaView extends JFrame {
             String horaStr = new SimpleDateFormat("hh:mm:ss a").format(new Date());
             lblInfoCaja.setText("<html><div style='text-align:right; font-family:Tahoma; font-size:10.5px; color:#333;'>" +
                 "<span style='color:#00aa00;'>&#9679;</span> <b>Terminal:</b> WS-CAJA-03 | <b>Operador:</b> operador_caja1<br>" +
-                "<span>Hora oficial Colombia (UTC-5): <b>" + horaStr + " COT</b> | Base: En línea</span>" +
+                "<span>Hora oficial Colombia (UTC-5): <b>" + horaStr + " COT</b> | MySQL: En línea</span>" +
                 "</div></html>");
         });
         timer.start();
@@ -108,8 +114,8 @@ public class VentanillaCajaView extends JFrame {
         pnlBusqueda.setOpaque(false);
         pnlBusqueda.add(new JLabel("<html><b>* Número de Cuenta:</b></html>"));
 
-        txtNumCuenta = new JTextField("4102-8849-1029", 18);
-        txtNumCuenta.setFont(new Font("Consolas", Font.BOLD, 13));
+        txtNumCuenta = new JTextField("", 18);
+        txtNumCuenta.setFont(new Font("Consolas", Font.BOLD, 14));
         txtNumCuenta.setForeground(new Color(0, 43, 102));
         pnlBusqueda.add(txtNumCuenta);
 
@@ -130,10 +136,10 @@ public class VentanillaCajaView extends JFrame {
                 BorderFactory.createEmptyBorder(8, 10, 8, 10)
         ));
 
-        lblTitular = new JLabel("<html><span style='color:#666;'>Titular:</span><br><b>Carlos Alberto Gómez Ramírez</b></html>");
-        lblIdentificacion = new JLabel("<html><span style='color:#666;'>Identificación (C.C.):</span><br><b style='font-family:monospace;'>1144089231</b></html>");
-        lblTipoCuenta = new JLabel("<html><span style='color:#666;'>Tipo de Producto:</span><br><b style='color:#002b66;'>Cuenta de Ahorros Tradicional</b></html>");
-        lblSaldo = new JLabel("<html><span style='color:#666;'>Saldo Disponible Actual:</span><br><b style='color:#006600; font-family:monospace; background-color:#e6ffe6; padding:2px;'>$ 350.000,00 COP</b></html>");
+        lblTitular = new JLabel("<html><span style='color:#666;'>Titular:</span><br><b>-</b></html>");
+        lblIdentificacion = new JLabel("<html><span style='color:#666;'>Identificación (C.C.):</span><br><b style='font-family:monospace;'>-</b></html>");
+        lblTipoCuenta = new JLabel("<html><span style='color:#666;'>Tipo de Producto:</span><br><b style='color:#002b66;'>-</b></html>");
+        lblSaldo = new JLabel("<html><span style='color:#666;'>Saldo Disponible Actual:</span><br><b style='color:#006600; font-family:monospace; background-color:#e6ffe6; padding:2px;'>$ 0.00 COP</b></html>");
 
         pnlFicha.add(lblTitular);
         pnlFicha.add(lblIdentificacion);
@@ -164,8 +170,8 @@ public class VentanillaCajaView extends JFrame {
 
         JPanel pnlRadioGroup = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
         pnlRadioGroup.setOpaque(false);
-        rbDeposito = new JRadioButton("Depósitos en Efectivo (+)");
-        rbRetiro = new JRadioButton("<html><b style='color:#002b66;'>Retiro por Ventanilla (-)</b></html>", true);
+        rbDeposito = new JRadioButton("<html><b style='color:#006600;'>Depósitos en Efectivo (+)</b></html>");
+        rbRetiro = new JRadioButton("<html><b style='color:#b20000;'>Retiro por Ventanilla (-)</b></html>", true);
         rbDeposito.setBackground(Color.WHITE);
         rbRetiro.setBackground(Color.WHITE);
         ButtonGroup bgTrans = new ButtonGroup();
@@ -184,21 +190,21 @@ public class VentanillaCajaView extends JFrame {
         lblMontoLabel.setFont(labelFont);
         pnlPaso2.add(lblMontoLabel, gbc);
 
-        txtMonto = new JTextField("850000", 15);
+        txtMonto = new JTextField("", 15);
         txtMonto.setFont(new Font("Consolas", Font.BOLD, 18));
-        txtMonto.setForeground(new Color(178, 34, 34));
-        txtMonto.setBackground(new Color(255, 251, 251));
+        txtMonto.setForeground(new Color(0, 0, 0));
+        txtMonto.setBackground(new Color(255, 255, 255));
 
         gbc.gridx = 1; gbc.anchor = GridBagConstraints.WEST;
         pnlPaso2.add(txtMonto, gbc);
 
         JLabel lblSpecs = new JLabel("<html><div style='background-color:#f0f0f0; border:1px solid #ccc; padding:4px 8px; font-size:10px; color:#444;'>" +
-                "<b>Formato numérico:</b> Entero / Decimal<br>" +
+                "<b>Formato numérico:</b> Escriba sin puntos<br>" +
                 "<b>Mínimo:</b> $ 10.000 COP | <b>Tope Caja:</b> $ 10.000.000 COP</div></html>");
         gbc.gridx = 2; gbc.anchor = GridBagConstraints.WEST;
         pnlPaso2.add(lblSpecs, gbc);
 
-        // Fila 3: Advertencia en tiempo real (Mensaje Rojo)
+        // Fila 3: Advertencia en tiempo real
         lblAdvertencia = new JLabel("");
         lblAdvertencia.setFont(new Font("Tahoma", Font.BOLD, 11));
         lblAdvertencia.setForeground(new Color(178, 34, 34));
@@ -207,7 +213,6 @@ public class VentanillaCajaView extends JFrame {
         pnlPaso2.add(lblAdvertencia, gbc);
 
         centerPanel.add(pnlPaso2);
-
         add(centerPanel, BorderLayout.CENTER);
 
         // 5. Panel Inferior (Botones y StatusBar)
@@ -238,14 +243,14 @@ public class VentanillaCajaView extends JFrame {
 
         JPanel statusBar = new JPanel(new FlowLayout(FlowLayout.LEFT));
         statusBar.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(172, 168, 153)));
-        statusBar.add(new JLabel("Estado: Activo | Oracle DB: 192.168.1.104:1521/UNICADB | Caja: #03"));
+        statusBar.add(new JLabel("Estado: Listo | Conexión MySQL Establecida | Caja: #03"));
 
         bottomContainer.add(pnlAcciones, BorderLayout.NORTH);
         bottomContainer.add(statusBar, BorderLayout.SOUTH);
         add(bottomContainer, BorderLayout.SOUTH);
 
         // =========================================================
-        // 6. EVENTOS, ATAJOS Y EVALUACIÓN EN TIEMPO REAL
+        // 6. EVENTOS Y LÓGICA
         // =========================================================
 
         btnVerificar.addActionListener(e -> verificarCuenta());
@@ -265,15 +270,212 @@ public class VentanillaCajaView extends JFrame {
             public void changedUpdate(DocumentEvent e) { evaluarExcesoMonto(); }
         });
 
-        // Evaluación inicial
-        evaluarExcesoMonto();
-
         // Registrar atajos de teclado
         configurarAtajosTeclado();
     }
 
+    // =========================================================
+    // MÉTODOS DE BASE DE DATOS
+    // =========================================================
+
+    private void verificarCuenta() {
+        String numCuenta = txtNumCuenta.getText().trim();
+        if(numCuenta.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Ingrese un número de cuenta válido para buscar.", "Validación", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        try (Connection conn = ConexionDB.conectar()) {
+            if (conn != null) {
+                // Hacemos INNER JOIN para traer los datos del Cliente vinculados a esa Cuenta
+                String sql = "SELECT c.id_cuenta, c.saldo, c.estado, c.tipo_cuenta, cl.nombres, cl.apellidos, cl.numero_documento " +
+                             "FROM Cuentas c " +
+                             "INNER JOIN Clientes cl ON c.id_cliente = cl.id_cliente " +
+                             "WHERE c.numero_cuenta = ?";
+                
+                PreparedStatement stmt = conn.prepareStatement(sql);
+                stmt.setString(1, numCuenta);
+                ResultSet rs = stmt.executeQuery();
+
+                if (rs.next()) {
+                    idCuentaActual = rs.getInt("id_cuenta");
+                    saldoActual = rs.getDouble("saldo");
+                    estadoCuentaActual = rs.getString("estado");
+                    
+                    String titular = rs.getString("nombres") + " " + rs.getString("apellidos");
+                    String documento = rs.getString("numero_documento");
+                    String tipo = rs.getString("tipo_cuenta");
+                    
+                    lblTitular.setText("<html><span style='color:#666;'>Titular:</span><br><b>" + titular + "</b></html>");
+                    lblIdentificacion.setText("<html><span style='color:#666;'>Identificación (C.C.):</span><br><b style='font-family:monospace;'>" + documento + "</b></html>");
+                    lblTipoCuenta.setText("<html><span style='color:#666;'>Tipo de Producto:</span><br><b style='color:#002b66;'>" + tipo + "</b></html>");
+                    
+                    DecimalFormat df = new DecimalFormat("$ #,##0.00 COP");
+                    lblSaldo.setText("<html><span style='color:#666;'>Saldo Disponible Actual:</span><br><b style='color:#006600; font-family:monospace; background-color:#e6ffe6; padding:2px;'>" + df.format(saldoActual) + "</b></html>");
+                    
+                    evaluarExcesoMonto();
+                } else {
+                    limpiarDatosCuenta();
+                    JOptionPane.showMessageDialog(this, "Número de cuenta no encontrado en la base de datos.", "Verificación Fallida", JOptionPane.WARNING_MESSAGE);
+                }
+            }
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Error al verificar la cuenta: " + ex.getMessage(), "Error SQL", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void buscarPorCedula() {
+        String cedula = JOptionPane.showInputDialog(this, 
+                "Ingrese el número de Cédula (C.C.) del Titular para buscar su cuenta:", 
+                "Búsqueda Rápida de Cuenta [F2]", 
+                JOptionPane.QUESTION_MESSAGE);
+        
+        if (cedula != null && !cedula.trim().isEmpty()) {
+            try (Connection conn = ConexionDB.conectar()) {
+                if (conn != null) {
+                    // Buscamos la primera cuenta ACTIVA asociada a esa cédula
+                    String sql = "SELECT c.numero_cuenta FROM Cuentas c " +
+                                 "INNER JOIN Clientes cl ON c.id_cliente = cl.id_cliente " +
+                                 "WHERE cl.numero_documento = ? AND c.estado = 'ACTIVA' LIMIT 1";
+                                 
+                    PreparedStatement stmt = conn.prepareStatement(sql);
+                    stmt.setString(1, cedula.trim());
+                    ResultSet rs = stmt.executeQuery();
+
+                    if (rs.next()) {
+                        txtNumCuenta.setText(rs.getString("numero_cuenta"));
+                        verificarCuenta(); // Autoejecutamos la verificación
+                    } else {
+                        JOptionPane.showMessageDialog(this, "No se encontraron cuentas activas para la cédula: " + cedula, "Sin Resultados", JOptionPane.WARNING_MESSAGE);
+                    }
+                }
+            } catch (SQLException ex) {
+                JOptionPane.showMessageDialog(this, "Error en la búsqueda por cédula: " + ex.getMessage(), "Error SQL", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private void procesarTransaccion() {
+        if (idCuentaActual == -1) {
+            JOptionPane.showMessageDialog(this, "Primero debe verificar una cuenta válida pulsando [Verificar Cuenta] o la tecla [F2].", "Validación", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        String montoTexto = txtMonto.getText().trim().replace(".", "").replace(",", ".");
+        
+        if (montoTexto.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Por favor ingrese el monto a transar.", "Validación", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        double monto;
+        try {
+            monto = Double.parseDouble(montoTexto);
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "Monto numérico inválido. Ingrese solo números.", "Error de Formato", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
+        if (monto < 10000) {
+            JOptionPane.showMessageDialog(this, "El monto mínimo por transacción es de $10.000 COP.", "Monto Inválido", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        if (estadoCuentaActual.equalsIgnoreCase("INACTIVA")) {
+            JOptionPane.showMessageDialog(this, "Operación rechazada: La cuenta se encuentra INACTIVA.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        DecimalFormat df = new DecimalFormat("$ #,##0.00 COP");
+        String tipoOperacion = rbRetiro.isSelected() ? "RETIRO" : "CONSIGNACION";
+
+        // Validar fondos para el retiro ANTES de conectar a la BD
+        if (tipoOperacion.equals("RETIRO") && monto > saldoActual) {
+            double deficit = monto - saldoActual;
+            String detalleError = "El sistema ha rechazado el retiro por fondos insuficientes.\n\n" +
+                    "• Saldo actual: " + df.format(saldoActual) + "\n" +
+                    "• Monto solicitado: " + df.format(monto) + "\n" +
+                    "• Déficit no autorizado: -" + df.format(deficit);
+            JOptionPane.showMessageDialog(this, detalleError, "Saldo Insuficiente", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // --- INICIO DE LA TRANSACCIÓN SQL (ACID) ---
+        try (Connection conn = ConexionDB.conectar()) {
+            if (conn != null) {
+                // 1. Apagamos el autoguardado para asegurar que las dos consultas se hagan juntas
+                conn.setAutoCommit(false);
+                
+                try {
+                    // 2. Operación Matemática: calcular el nuevo saldo
+                    double nuevoSaldo = tipoOperacion.equals("RETIRO") ? (saldoActual - monto) : (saldoActual + monto);
+                    
+                    // 3. Consulta A: Actualizamos el saldo de la cuenta
+                    String sqlUpdate = "UPDATE Cuentas SET saldo = ? WHERE id_cuenta = ?";
+                    PreparedStatement stmtUpdate = conn.prepareStatement(sqlUpdate);
+                    stmtUpdate.setDouble(1, nuevoSaldo);
+                    stmtUpdate.setInt(2, idCuentaActual);
+                    stmtUpdate.executeUpdate();
+
+                    // 4. Consulta B: Guardamos el comprobante en Transacciones
+                    String sqlInsert = "INSERT INTO Transacciones (id_cuenta, tipo_operacion, monto) VALUES (?, ?, ?)";
+                    PreparedStatement stmtInsert = conn.prepareStatement(sqlInsert);
+                    stmtInsert.setInt(1, idCuentaActual);
+                    stmtInsert.setString(2, tipoOperacion);
+                    stmtInsert.setDouble(3, monto);
+                    stmtInsert.executeUpdate();
+
+                    // 5. ¡Ejecutamos todo al tiempo! (COMMIT)
+                    conn.commit();
+                    
+                    // 6. Actualizamos el entorno visual si todo salió perfecto
+                    saldoActual = nuevoSaldo;
+                    lblSaldo.setText("<html><span style='color:#666;'>Saldo Disponible Actual:</span><br><b style='color:#006600; font-family:monospace; background-color:#e6ffe6; padding:2px;'>" + df.format(saldoActual) + "</b></html>");
+                    txtMonto.setText("");
+                    evaluarExcesoMonto();
+                    
+                    JOptionPane.showMessageDialog(this, "Transacción de " + tipoOperacion + " aprobada y guardada.\nNuevo saldo: " + df.format(saldoActual), "Transacción Exitosa", JOptionPane.INFORMATION_MESSAGE);
+
+                } catch (SQLException ex) {
+                    // Si falla ALGO, el ROLLBACK deshace todo para que no se pierda el dinero
+                    conn.rollback(); 
+                    throw ex; 
+                } finally {
+                    conn.setAutoCommit(true); // Restauramos la configuración de MySQL
+                }
+            }
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Ocurrió un error en la transacción y fue revertida: " + ex.getMessage(), "Fallo Crítico SQL", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    // =========================================================
+    // UTILIDADES VISUALES Y ATAJOS
+    // =========================================================
+
+    private void limpiarDatosCuenta() {
+        lblTitular.setText("<html><span style='color:#666;'>Titular:</span><br><b>-</b></html>");
+        lblIdentificacion.setText("<html><span style='color:#666;'>Identificación (C.C.):</span><br><b style='font-family:monospace;'>-</b></html>");
+        lblTipoCuenta.setText("<html><span style='color:#666;'>Tipo de Producto:</span><br><b style='color:#002b66;'>-</b></html>");
+        lblSaldo.setText("<html><span style='color:#666;'>Saldo Disponible Actual:</span><br><b style='color:#006600; font-family:monospace; background-color:#e6ffe6; padding:2px;'>$ 0.00 COP</b></html>");
+        
+        idCuentaActual = -1;
+        saldoActual = 0.00;
+        estadoCuentaActual = "";
+        evaluarExcesoMonto();
+    }
+
+    private void limpiarFormulario() {
+        txtNumCuenta.setText("");
+        limpiarDatosCuenta();
+        txtMonto.setText("");
+        rbRetiro.setSelected(true);
+        lblAdvertencia.setText("");
+        txtNumCuenta.requestFocus();
+    }
+
     private void evaluarExcesoMonto() {
-        if (!rbRetiro.isSelected()) {
+        if (!rbRetiro.isSelected() || idCuentaActual == -1) {
             lblAdvertencia.setText("");
             return;
         }
@@ -288,103 +490,12 @@ public class VentanillaCajaView extends JFrame {
             double monto = Double.parseDouble(texto);
             if (monto > saldoActual) {
                 DecimalFormat df = new DecimalFormat("#,##0.00 COP");
-                lblAdvertencia.setText("<html>⚠ El monto ingresado ($ " + df.format(monto) + ") excede el saldo disponible actual ($ " + df.format(saldoActual) + ").</html>");
+                lblAdvertencia.setText("<html>⚠ El monto ingresado ($ " + df.format(monto) + ") excede el saldo disponible actual.</html>");
             } else {
                 lblAdvertencia.setText("");
             }
         } catch (NumberFormatException ex) {
             lblAdvertencia.setText("");
-        }
-    }
-
-    private void buscarPorCedula() {
-        String cedula = JOptionPane.showInputDialog(this, 
-                "Ingrese el número de Cédula (C.C.) del Titular para buscar su cuenta:", 
-                "Búsqueda Rápida de Cuenta [F2]", 
-                JOptionPane.QUESTION_MESSAGE);
-        
-        if (cedula != null && !cedula.trim().isEmpty()) {
-            cedula = cedula.trim();
-            if (cedula.equals("1144089231")) {
-                txtNumCuenta.setText("4102-8849-1029");
-                verificarCuenta();
-                JOptionPane.showMessageDialog(this, "Cuenta asociada encontrada e ingresada exitosamente.", "Búsqueda por Cédula", JOptionPane.INFORMATION_MESSAGE);
-            } else {
-                JOptionPane.showMessageDialog(this, "No se encontraron cuentas activas registradas para la cédula: " + cedula, "Sin Resultados", JOptionPane.WARNING_MESSAGE);
-            }
-        }
-    }
-
-    private void verificarCuenta() {
-        if (txtNumCuenta.getText().trim().equals("4102-8849-1029")) {
-            lblTitular.setText("<html><span style='color:#666;'>Titular:</span><br><b>Carlos Alberto Gómez Ramírez</b></html>");
-            lblIdentificacion.setText("<html><span style='color:#666;'>Identificación (C.C.):</span><br><b style='font-family:monospace;'>1144089231</b></html>");
-            lblTipoCuenta.setText("<html><span style='color:#666;'>Tipo de Producto:</span><br><b style='color:#002b66;'>Cuenta de Ahorros Tradicional</b></html>");
-            lblSaldo.setText("<html><span style='color:#666;'>Saldo Disponible Actual:</span><br><b style='color:#006600; font-family:monospace; background-color:#e6ffe6; padding:2px;'>$ 350.000,00 COP</b></html>");
-            saldoActual = 350000.00;
-            estadoCuentaActual = "ACTIVA";
-            evaluarExcesoMonto();
-        } else {
-            JOptionPane.showMessageDialog(this, "Número de cuenta no encontrado en la base de datos central.", "Verificación", JOptionPane.WARNING_MESSAGE);
-        }
-    }
-
-    private void limpiarFormulario() {
-        txtMonto.setText("");
-        rbRetiro.setSelected(true);
-        lblAdvertencia.setText("");
-        txtMonto.requestFocus();
-    }
-
-    private void procesarTransaccion() {
-        String montoTexto = txtMonto.getText().trim().replace(".", "").replace(",", ".");
-        
-        if (montoTexto.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Por favor ingrese el monto a transar.", "Validación", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        double monto;
-        try {
-            monto = Double.parseDouble(montoTexto);
-        } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "Monto inválido. Ingrese solo caracteres numéricos.", "Error de Formato", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        if (estadoCuentaActual.equalsIgnoreCase("INACTIVA")) {
-            JOptionPane.showMessageDialog(this,
-                    "Operación rechazada: La cuenta receptora/origen no admite movimientos por encontrarse en estado inactivo.",
-                    "Error en Operación Bancaria - Cuenta Inactiva",
-                    JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        DecimalFormat df = new DecimalFormat("$ #,##0.00 COP");
-
-        if (rbRetiro.isSelected()) {
-            if (monto > saldoActual) {
-                double deficit = monto - saldoActual;
-                String detalleError = "No es posible procesar la transacción solicitada.\n\n" +
-                        "El sistema de validación del Banco Unicatolica ha rechazado la operación de retiro debido a la siguiente infracción de reglas de negocio:\n\n" +
-                        "• Cuenta: " + txtNumCuenta.getText() + " (Titular: Carlos Gómez)\n" +
-                        "• Saldo actual disponible: " + df.format(saldoActual) + "\n" +
-                        "• Monto solicitado de retiro: " + df.format(monto) + "\n" +
-                        "• Déficit no autorizado: -" + df.format(deficit) + "\n\n" +
-                        "Por favor rectifique el importe con el cliente o solicite un depósito previo.";
-
-                JOptionPane.showMessageDialog(this, detalleError, "Error en Operación Bancaria - Saldo Insuficiente", JOptionPane.ERROR_MESSAGE);
-            } else {
-                saldoActual -= monto;
-                lblSaldo.setText("<html><span style='color:#666;'>Saldo Disponible Actual:</span><br><b style='color:#006600; font-family:monospace; background-color:#e6ffe6; padding:2px;'>" + df.format(saldoActual) + "</b></html>");
-                evaluarExcesoMonto();
-                JOptionPane.showMessageDialog(this, "Retiro procesado exitosamente.\nNuevo saldo: " + df.format(saldoActual), "Transacción Exitosa", JOptionPane.INFORMATION_MESSAGE);
-            }
-        } else {
-            saldoActual += monto;
-            lblSaldo.setText("<html><span style='color:#666;'>Saldo Disponible Actual:</span><br><b style='color:#006600; font-family:monospace; background-color:#e6ffe6; padding:2px;'>" + df.format(saldoActual) + "</b></html>");
-            evaluarExcesoMonto();
-            JOptionPane.showMessageDialog(this, "Depósito procesado exitosamente.\nNuevo saldo: " + df.format(saldoActual), "Transacción Exitosa", JOptionPane.INFORMATION_MESSAGE);
         }
     }
 
@@ -394,26 +505,20 @@ public class VentanillaCajaView extends JFrame {
         rootPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0), "buscarF2");
         rootPane.getActionMap().put("buscarF2", new AbstractAction() {
             @Override
-            public void actionPerformed(ActionEvent e) {
-                buscarPorCedula();
-            }
+            public void actionPerformed(ActionEvent e) { buscarPorCedula(); }
         });
 
         rootPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0), "limpiarForm");
         rootPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "limpiarForm");
         rootPane.getActionMap().put("limpiarForm", new AbstractAction() {
             @Override
-            public void actionPerformed(ActionEvent e) {
-                limpiarFormulario();
-            }
+            public void actionPerformed(ActionEvent e) { limpiarFormulario(); }
         });
 
         rootPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "procesarEnter");
         rootPane.getActionMap().put("procesarEnter", new AbstractAction() {
             @Override
-            public void actionPerformed(ActionEvent e) {
-                procesarTransaccion();
-            }
+            public void actionPerformed(ActionEvent e) { procesarTransaccion(); }
         });
     }
 
