@@ -5,6 +5,9 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 
 public class GestionClientesView extends JFrame {
 
@@ -15,8 +18,8 @@ public class GestionClientesView extends JFrame {
     public GestionClientesView() {
         // 1. Configuración de la Ventana Principal
         setTitle("Banco Unicatolica - Gestión de Clientes");
-        setSize(850, 520); // Un poco más ancha para que quepa bien el header
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setSize(850, 520);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
 
@@ -30,12 +33,11 @@ public class GestionClientesView extends JFrame {
 
         // 3. Panel Superior (Header estilo Web / Beige Claro)
         JPanel topContainer = new JPanel(new BorderLayout());
-        topContainer.setBackground(new Color(236, 233, 216)); // Color base ventana Swing clásica
+        topContainer.setBackground(new Color(236, 233, 216));
         
         JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.setBackground(new Color(245, 243, 233)); // Fondo beige claro del cuadro
+        headerPanel.setBackground(new Color(245, 243, 233));
         headerPanel.setOpaque(true);
-        // Doble borde: Margen exterior + Borde gris delgado
         headerPanel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createEmptyBorder(10, 15, 5, 15),
                 BorderFactory.createCompoundBorder(
@@ -45,13 +47,11 @@ public class GestionClientesView extends JFrame {
         ));
 
         // --- Lado Izquierdo: Logo y Títulos ---
-      // --- Lado Izquierdo: Logo y Títulos ---
         JPanel pnlIzquierdo = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         pnlIzquierdo.setOpaque(false);
         
         JLabel lblLogo = new JLabel();
         try {
-            // getResource busca el archivo sin importar las carpetas del sistema
             java.net.URL imgURL = getClass().getResource("/banco_unicatolica.jpg");
             if (imgURL != null) {
                 ImageIcon icon = new ImageIcon(imgURL);
@@ -64,7 +64,6 @@ public class GestionClientesView extends JFrame {
             System.err.println("Error al cargar imagen: " + ex.getMessage());
         }
 
-        // Uso de HTML y Tablas para alinear el título y el "botón/etiqueta" azul
         JLabel lblTitulo = new JLabel("<html>" +
                 "<table cellpadding='0' cellspacing='0'>" +
                 "<tr>" +
@@ -83,13 +82,11 @@ public class GestionClientesView extends JFrame {
 
         // --- Lado Derecho: Reloj en vivo y Estado ---
         JLabel lblReloj = new JLabel();
-        // Borde izquierdo para crear la línea divisoria (Separator)
         lblReloj.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(0, 1, 0, 0, new Color(200, 200, 200)),
                 BorderFactory.createEmptyBorder(0, 15, 0, 5)
         ));
 
-        // Timer para hacer que los segundos avancen en vivo
         Timer timer = new Timer(1000, new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -116,7 +113,6 @@ public class GestionClientesView extends JFrame {
         centerPanel.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
 
         JPanel formPanel = new JPanel(new GridBagLayout());
-        // Ajuste del título del panel según el boceto
         formPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.GRAY), 
                 "Datos Generales del Cliente (Formulario de Edición / Registro)", 
                 TitledBorder.LEFT, TitledBorder.TOP, new Font("Arial", Font.BOLD, 12), new Color(0, 51, 153)));
@@ -191,24 +187,62 @@ public class GestionClientesView extends JFrame {
         add(bottomPanel, BorderLayout.SOUTH);
 
         // 6. Eventos
-        btnGuardar.addActionListener(e -> validarFormulario());
+        btnGuardar.addActionListener(e -> guardarClienteBD());
         btnCancelar.addActionListener(e -> dispose());
     }
 
-    private void validarFormulario() {
-        if (txtIdentificacion.getText().trim().isEmpty() || txtNombre.getText().trim().isEmpty() ||
-            txtTelefono.getText().trim().isEmpty() || txtCorreo.getText().trim().isEmpty() ||
-            txtDireccion.getText().trim().isEmpty()) {
-            
-            if(txtCorreo.getText().trim().isEmpty()) txtCorreo.setBackground(new Color(255, 240, 240));
+    // =========================================================
+    // LÓGICA DE BASE DE DATOS
+    // =========================================================
+    private void guardarClienteBD() {
+        String identificacion = txtIdentificacion.getText().trim();
+        String nombre = txtNombre.getText().trim();
+        String telefono = txtTelefono.getText().trim();
+        String correo = txtCorreo.getText().trim();
+        String direccion = txtDireccion.getText().trim();
+        String estado = rbActivo.isSelected() ? "ACTIVO" : "INACTIVO";
 
+        // Validación básica
+        if (identificacion.isEmpty() || nombre.isEmpty() || telefono.isEmpty() || correo.isEmpty() || direccion.isEmpty()) {
+            if(correo.isEmpty()) txtCorreo.setBackground(new Color(255, 240, 240));
             JOptionPane.showMessageDialog(this,
                     "Debe diligenciar todos los campos obligatorios marcados con asterisco rojo.\n\n" +
                     "Por favor verifique los datos ingresados.",
                     "Error de Validación", JOptionPane.ERROR_MESSAGE);
-        } else {
-            txtCorreo.setBackground(Color.WHITE);
-            JOptionPane.showMessageDialog(this, "Datos del cliente guardados correctamente.", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        
+        txtCorreo.setBackground(Color.WHITE);
+
+        // Inserción en la base de datos MySQL
+        try (Connection conn = ConexionDB.conectar()) {
+            if (conn != null) {
+                // Se envía 'CC' como tipo_documento y un espacio en apellidos para cumplir con el esquema NOT NULL de tu BD
+                String sql = "INSERT INTO Clientes (tipo_documento, numero_documento, nombres, apellidos, telefono, correo, direccion, estado) VALUES ('CC', ?, ?, '', ?, ?, ?, ?)";
+                
+                PreparedStatement stmt = conn.prepareStatement(sql);
+                stmt.setString(1, identificacion);
+                stmt.setString(2, nombre);
+                stmt.setString(3, telefono);
+                stmt.setString(4, correo);
+                stmt.setString(5, direccion);
+                stmt.setString(6, estado);
+                
+                int filasAfectadas = stmt.executeUpdate();
+                
+                if (filasAfectadas > 0) {
+                    JOptionPane.showMessageDialog(this, "El cliente ha sido registrado exitosamente en la base de datos.", "Registro Exitoso", JOptionPane.INFORMATION_MESSAGE);
+                    // Limpiar el formulario para un nuevo registro
+                    txtIdentificacion.setText("");
+                    txtNombre.setText("");
+                    txtTelefono.setText("");
+                    txtCorreo.setText("");
+                    txtDireccion.setText("");
+                    rbActivo.setSelected(true);
+                }
+            }
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Error al guardar el cliente: " + ex.getMessage(), "Error SQL", JOptionPane.ERROR_MESSAGE);
         }
     }
 

@@ -20,7 +20,7 @@ public class ConsultaCuentasView extends JFrame {
 
     public ConsultaCuentasView() {
         // 1. Configuración de la Ventana Principal
-        setTitle("Banco Unicatolica - Consulta de Cuentas y Baja Lógica");
+        setTitle("Banco Unicatolica - Consulta de Cuentas y Baja Lógica (RF06 / RF08)");
         setSize(980, 620);
         setMinimumSize(new Dimension(930, 600));
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);

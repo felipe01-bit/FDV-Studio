@@ -2,6 +2,10 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 public class LoginView extends JFrame {
 
@@ -16,7 +20,7 @@ public class LoginView extends JFrame {
     public LoginView() {
         // 1. Configuración de la Ventana Principal
         setTitle("Banco Unicatolica - Sistema de Gestión");
-        setSize(420, 360); // Ajuste de altura para que todo respire bien
+        setSize(420, 360); 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setResizable(false);
@@ -58,7 +62,7 @@ public class LoginView extends JFrame {
         
         gbc.gridy = 1;
         txtUsuario = new JTextField("operador_caja1");
-        txtUsuario.setPreferredSize(new Dimension(200, 25)); // Evita que se deforme
+        txtUsuario.setPreferredSize(new Dimension(200, 25));
         formPanel.add(txtUsuario, gbc);
 
         gbc.gridy = 2;
@@ -66,10 +70,10 @@ public class LoginView extends JFrame {
         
         gbc.gridy = 3;
         txtPassword = new JPasswordField();
-        txtPassword.setPreferredSize(new Dimension(200, 25)); // Evita que se deforme
+        txtPassword.setPreferredSize(new Dimension(200, 25));
         formPanel.add(txtPassword, gbc);
 
-        // Cuadro de Intentos (Fijado con BorderLayout a los extremos)
+        // Cuadro de Intentos
         gbc.gridy = 4;
         gbc.insets = new Insets(15, 0, 5, 0);
         
@@ -87,7 +91,6 @@ public class LoginView extends JFrame {
         pnlIntentos.add(lblEstado, BorderLayout.EAST);
         
         formPanel.add(pnlIntentos, gbc);
-
         centerPanel.add(formPanel, BorderLayout.CENTER);
 
         // Botones
@@ -113,7 +116,7 @@ public class LoginView extends JFrame {
         add(statusBar, BorderLayout.SOUTH);
 
         // =========================================================
-        // 5. LÓGICA DE SEGURIDAD Y EVENTOS (RF14)
+        // 5. EVENTOS
         // =========================================================
 
         btnCancelar.addActionListener(e -> {
@@ -126,29 +129,49 @@ public class LoginView extends JFrame {
         txtPassword.addActionListener(e -> validarLogin());
     }
 
+    // =========================================================
+    // 6. LÓGICA DE BASE DE DATOS Y SEGURIDAD
+    // =========================================================
     private void validarLogin() {
         String usr = txtUsuario.getText().trim();
         String pwd = new String(txtPassword.getPassword());
 
-        // Credenciales de prueba exitosas
-        if (usr.equals("operador_caja1") && pwd.equals("12345")) {
-            JOptionPane.showMessageDialog(this, "Autenticación exitosa. Bienvenido al sistema.", "Acceso Permitido", JOptionPane.INFORMATION_MESSAGE);
-            intentosFallidos = 0;
-            actualizarContador();
-            
-            // AQUÍ: Código para abrir el Menú Principal
-            
-        } else {
-            intentosFallidos++;
-            actualizarContador();
+        if (usr.isEmpty() || pwd.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Por favor ingrese usuario y contraseña.", "Campos vacíos", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
 
-            if (intentosFallidos >= MAX_INTENTOS) {
-                bloquearCuenta();
-            } else {
-                JOptionPane.showMessageDialog(this, "Credenciales incorrectas. Intento " + intentosFallidos + " de " + MAX_INTENTOS, "Error de Autenticación", JOptionPane.WARNING_MESSAGE);
-                txtPassword.setText("");
-                txtPassword.requestFocus();
+        try (Connection conn = ConexionDB.conectar()) {
+            if (conn != null) {
+                String sql = "SELECT * FROM Usuarios WHERE username = ? AND password = ?";
+                PreparedStatement stmt = conn.prepareStatement(sql);
+                stmt.setString(1, usr);
+                stmt.setString(2, pwd);
+                
+                ResultSet rs = stmt.executeQuery();
+
+                if (rs.next()) {
+                    JOptionPane.showMessageDialog(this, "Autenticación exitosa. Bienvenido al sistema.", "Acceso Permitido", JOptionPane.INFORMATION_MESSAGE);
+                    intentosFallidos = 0;
+                    
+                    MenuPrincipalView menu = new MenuPrincipalView();
+                    menu.setVisible(true);
+                    this.dispose(); 
+                } else {
+                    intentosFallidos++;
+                    actualizarContador();
+
+                    if (intentosFallidos >= MAX_INTENTOS) {
+                        bloquearCuenta();
+                    } else {
+                        JOptionPane.showMessageDialog(this, "Credenciales incorrectas. Intento " + intentosFallidos + " de " + MAX_INTENTOS, "Error de Autenticación", JOptionPane.WARNING_MESSAGE);
+                        txtPassword.setText("");
+                        txtPassword.requestFocus();
+                    }
+                }
             }
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Error al consultar la base de datos: " + ex.getMessage(), "Error SQL", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -170,6 +193,9 @@ public class LoginView extends JFrame {
         JOptionPane.showMessageDialog(this, mensajeError, "Error de Autenticación", JOptionPane.ERROR_MESSAGE);
     }
 
+    // =========================================================
+    // 7. MÉTODO MAIN
+    // =========================================================
     public static void main(String[] args) {
         try { UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()); } catch (Exception e) {}
         SwingUtilities.invokeLater(() -> new LoginView().setVisible(true));

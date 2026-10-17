@@ -2,12 +2,16 @@ import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
-import javax.swing.RowFilter;
+
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 public class ConsultaClientesView extends JFrame {
 
@@ -20,7 +24,7 @@ public class ConsultaClientesView extends JFrame {
         // 1. Configuración de la Ventana Principal
         setTitle("Banco Unicatolica - Consulta de Clientes (RF02 / RF04)");
         setSize(900, 600);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
 
@@ -62,7 +66,7 @@ public class ConsultaClientesView extends JFrame {
         JLabel lblTitulo = new JLabel("<html><table cellpadding='0' cellspacing='0'><tr>" +
                 "<td valign='middle'><b style='color:#002b66; font-size:15px; font-family:Tahoma;'>BANCO UNICATOLICA</b></td>" +
                 "<td width='10'></td><td valign='middle'><div style='font-size:9px; color:#003882; background-color:#e2ecf8; border:1px solid #9bbbe1; padding:2px 5px;'>Módulo de Clientes</div></td>" +
-                "</tr><tr><td colspan='3' style='color:#555555; font-size:10px; padding-top:3px;'>Búsqueda de registros maestros y bajas lógicas</td></tr></table></html>");
+                "</tr><tr><td colspan='3' style='color:#555555; font-size:10px; padding-top:3px;'>Búsqueda de registros y Borrado Físico</td></tr></table></html>");
 
         pnlIzquierdo.add(lblLogo);
         pnlIzquierdo.add(lblTitulo);
@@ -76,7 +80,7 @@ public class ConsultaClientesView extends JFrame {
                 "<span style='color:#004080; font-size:13px;'>&#128338;</span> " + 
                 "<b style='font-family:monospace; font-size:11px; background-color:white; border:1px solid #808080; padding:1px 5px; color:#000;'>" + horaStr + " COT</b><br>" +
                 "<span style='font-size:9px; color:#555;'>Zona horaria: Colombia (UTC-5)</span><br>" +
-                "<span style='font-size:9px; color:#00aa00; font-weight:bold;'>&#9679; BD: 192.168.1.104:1521 (En línea)</span></div></html>");
+                "<span style='font-size:9px; color:#00aa00; font-weight:bold;'>&#9679; MySQL DB: Conectado</span></div></html>");
         });
         timer.start();
 
@@ -92,7 +96,7 @@ public class ConsultaClientesView extends JFrame {
         // 4.1 Panel de Búsqueda
         JPanel pnlBusqueda = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
         pnlBusqueda.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.GRAY), "Criterios de Consulta"));
-        pnlBusqueda.add(new JLabel("Buscar por ID o Nombre:"));
+        pnlBusqueda.add(new JLabel("Buscar por Documento o Nombre:"));
         txtBusqueda = new JTextField(20);
         pnlBusqueda.add(txtBusqueda);
         
@@ -104,23 +108,18 @@ public class ConsultaClientesView extends JFrame {
         centerPanel.add(pnlBusqueda, BorderLayout.NORTH);
 
         // 4.2 Tabla de Resultados
-        String[] columnas = {"ID", "Nombre", "Teléfono", "Correo", "Dirección"};
+        String[] columnas = {"Documento", "Nombre Completo", "Teléfono", "Correo", "Dirección", "Estado"};
         modeloTabla = new DefaultTableModel(columnas, 0) {
             @Override
-            public boolean isCellEditable(int row, int column) { return false; } // Tabla de solo lectura
+            public boolean isCellEditable(int row, int column) { return false; }
         };
         tablaClientes = new JTable(modeloTabla);
         tablaClientes.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         tablaClientes.setRowHeight(22);
         tablaClientes.getTableHeader().setFont(new Font("Arial", Font.BOLD, 12));
 
-        // Llenar datos de prueba según el boceto
-        modeloTabla.addRow(new Object[]{"1144089231", "Carlos Alberto Gómez Ramírez", "+57 315 889 4521", "carlos.gomez@unicatolica.edu.co", "Calle 5 # 44-12 Apto 302"});
-        modeloTabla.addRow(new Object[]{"1144567890", "María Fernanda Ortiz Castro", "+57 310 445 1290", "m.ortiz@correo.com", "Av. Roosevelt # 28-15"});
-        modeloTabla.addRow(new Object[]{"1144901234", "Jorge Andrés Caicedo Mina", "+57 318 765 4321", "jcaicedo@valle.net", "Carrera 1 # 12-40 Centro"});
-
         JScrollPane scrollTabla = new JScrollPane(tablaClientes);
-        scrollTabla.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY), "Registros de Clientes Activos e Históricos"));
+        scrollTabla.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY), "Registros de Clientes en Base de Datos"));
         centerPanel.add(scrollTabla, BorderLayout.CENTER);
 
         // 4.3 Botones de Acción Inferiores
@@ -148,43 +147,36 @@ public class ConsultaClientesView extends JFrame {
         // 5. Barra de Estado Inferior
         JPanel statusBar = new JPanel(new FlowLayout(FlowLayout.LEFT));
         statusBar.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, Color.GRAY));
-        statusBar.add(new JLabel("Listo. | Total clientes en BD: 1,482"));
+        statusBar.add(new JLabel("Listo. Módulo conectado a MySQL."));
         add(statusBar, BorderLayout.SOUTH);
 
         // =========================================================
-        // 6. EVENTOS (Buscar, Limpiar, Eliminar)
+        // 6. EVENTOS Y BÚSQUEDA
         // =========================================================
-
-        // 6.1 Crear el ordenador/filtro y asignarlo a la tabla
         TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(modeloTabla);
         tablaClientes.setRowSorter(sorter);
 
-        // 6.2 Evento del botón Buscar
-        btnBuscar.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String textoBusqueda = txtBusqueda.getText().trim();
-                
-                if (textoBusqueda.isEmpty()) {
-                    sorter.setRowFilter(null); // Mostrar todos si está vacío
-                } else {
-                    // Filtro ignorando mayúsculas/minúsculas (?i)
-                    sorter.setRowFilter(RowFilter.regexFilter("(?i)" + textoBusqueda));
-                }
+        ActionListener buscarAction = e -> {
+            String textoBusqueda = txtBusqueda.getText().trim();
+            if (textoBusqueda.isEmpty()) {
+                sorter.setRowFilter(null);
+            } else {
+                sorter.setRowFilter(RowFilter.regexFilter("(?i)" + textoBusqueda));
             }
-        });
+        };
 
-        // 6.3 Evento para limpiar el filtro
+        btnBuscar.addActionListener(buscarAction);
+        txtBusqueda.addActionListener(buscarAction);
+
         btnLimpiar.addActionListener(e -> {
             txtBusqueda.setText("");
-            sorter.setRowFilter(null); // Quita el filtro
+            sorter.setRowFilter(null);
         });
 
-        // 6.4 Evento del botón Eliminar (Ventana de Confirmación)
+        // Evento de ELIMINACIÓN FÍSICA en MySQL (DELETE)
         btnEliminar.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // Al usar TableRowSorter, necesitamos convertir el índice visual al índice del modelo real
                 int filaVisual = tablaClientes.getSelectedRow();
                 
                 if (filaVisual == -1) {
@@ -194,28 +186,87 @@ public class ConsultaClientesView extends JFrame {
                     return;
                 }
 
-                // Convertir el índice visual al índice real en el modelo
                 int filaModelo = tablaClientes.convertRowIndexToModel(filaVisual);
-
-                String idCliente = modeloTabla.getValueAt(filaModelo, 0).toString();
+                String docCliente = modeloTabla.getValueAt(filaModelo, 0).toString().trim();
                 String nombreCliente = modeloTabla.getValueAt(filaModelo, 1).toString();
 
-                String mensaje = "¿Está seguro que desea eliminar este cliente?\n" +
-                                 "Esta operación aplicará una baja lógica en la base de datos central del Banco Unicatolica según la especificación de negocio.\n\n" +
-                                 "Cliente: " + idCliente + "\n" +
-                                 "Titular: " + nombreCliente + "\n" +
-                                 "Estado: ACTIVO -> INACTIVO (BAJA)";
+                String mensaje = "¿Está seguro que desea BORRAR DEFINITIVAMENTE este cliente?\n" +
+                                 "Esta acción eliminará la fila física de la base de datos MySQL.\n\n" +
+                                 "Documento: " + docCliente + "\n" +
+                                 "Titular: " + nombreCliente;
 
                 int confirmacion = JOptionPane.showConfirmDialog(ConsultaClientesView.this, 
                         mensaje, "Confirmación de Eliminación", 
                         JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
 
                 if (confirmacion == JOptionPane.YES_OPTION) {
-                    modeloTabla.removeRow(filaModelo);
-                    JOptionPane.showMessageDialog(ConsultaClientesView.this, "El cliente ha sido dado de baja exitosamente.", "Baja Exitosa", JOptionPane.INFORMATION_MESSAGE);
+                    try (Connection conn = ConexionDB.conectar()) {
+                        if (conn != null) {
+                            // Instrucción DELETE para borrar de verdad
+                            String sql = "DELETE FROM clientes WHERE numero_documento = ?";
+                            PreparedStatement stmt = conn.prepareStatement(sql);
+                            stmt.setString(1, docCliente);
+                            
+                            int filas = stmt.executeUpdate();
+                            if (filas > 0) {
+                                JOptionPane.showMessageDialog(ConsultaClientesView.this, 
+                                        "El cliente ha sido eliminado completamente de la base de datos.", 
+                                        "Borrado Exitoso", JOptionPane.INFORMATION_MESSAGE);
+                                // Recargamos para que desaparezca de la pantalla
+                                cargarClientesBD(); 
+                            } else {
+                                JOptionPane.showMessageDialog(ConsultaClientesView.this, 
+                                        "No se encontró el registro con el documento " + docCliente + ".", 
+                                        "Aviso", JOptionPane.WARNING_MESSAGE);
+                            }
+                        }
+                    } catch (SQLException ex) {
+                        // Error 1451: MySQL bloquea el borrado por la Llave Foránea (el cliente tiene cuentas)
+                        if (ex.getErrorCode() == 1451) {
+                            JOptionPane.showMessageDialog(ConsultaClientesView.this, 
+                                "No se puede borrar este cliente porque tiene cuentas bancarias asignadas.\n\n" +
+                                "La base de datos protege su información (Restricción de Llave Foránea).\n" +
+                                "Debe borrar primero sus cuentas antes de borrar al cliente.", 
+                                "Protección de MySQL", JOptionPane.ERROR_MESSAGE);
+                        } else {
+                            JOptionPane.showMessageDialog(ConsultaClientesView.this, 
+                                    "Error al intentar borrar el cliente: " + ex.getMessage(), 
+                                    "Error SQL", JOptionPane.ERROR_MESSAGE);
+                        }
+                    }
                 }
             }
         });
+
+        // Cargar los datos al iniciar la ventana
+        cargarClientesBD();
+    }
+
+    // =========================================================
+    // LÓGICA DE CONSULTA BASE DE DATOS
+    // =========================================================
+    private void cargarClientesBD() {
+        modeloTabla.setRowCount(0); // Limpiar filas de la vista
+        try (Connection conn = ConexionDB.conectar()) {
+            if (conn != null) {
+                String sql = "SELECT numero_documento, CONCAT(nombres, ' ', apellidos) AS nombre_completo, telefono, correo, direccion, estado FROM clientes";
+                PreparedStatement stmt = conn.prepareStatement(sql);
+                ResultSet rs = stmt.executeQuery();
+
+                while (rs.next()) {
+                    String doc = rs.getString("numero_documento");
+                    String nombre = rs.getString("nombre_completo");
+                    String tel = rs.getString("telefono");
+                    String correo = rs.getString("correo");
+                    String dir = rs.getString("direccion");
+                    String estado = rs.getString("estado");
+
+                    modeloTabla.addRow(new Object[]{doc, nombre, tel, correo, dir, estado});
+                }
+            }
+        } catch (SQLException ex) {
+            System.err.println("Error al cargar la lista de clientes: " + ex.getMessage());
+        }
     }
 
     public static void main(String[] args) {
