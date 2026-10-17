@@ -30,7 +30,7 @@ public class ConsultaTransaccionesView extends JFrame {
 
     public ConsultaTransaccionesView() {
         // 1. Configuración de la Ventana Principal
-        setTitle("Banco Unicatolica - Sistema de Gestión Bancaria :: [RF10 - Consulta de Transacciones e Historial]");
+        setTitle("Banco Unicatolica - Sistema de Gestión Bancaria");
         setSize(1000, 680);
         setMinimumSize(new Dimension(950, 600));
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);

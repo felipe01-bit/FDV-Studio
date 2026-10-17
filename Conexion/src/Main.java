@@ -3,9 +3,8 @@ import java.sql.SQLException;
 
 public class Main {
     public static void main(String[] args) {
-        Conexion con = new Conexion();
-        Connection conexionMySQL = con.conectar();
-
+        Connection conexionMySQL = ConexionDB.conectar();
+        
         if (conexionMySQL != null) {
             CrearBaseDatos creadorBD = new CrearBaseDatos();
             creadorBD.crear(conexionMySQL);

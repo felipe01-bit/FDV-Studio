@@ -1,15 +1,37 @@
-import javax.swing.*;
-import javax.swing.border.TitledBorder;
-import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Random;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Image;
+import java.awt.Insets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Random;
+
+import javax.swing.BorderFactory;
+import javax.swing.ButtonGroup;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JRadioButton;
+import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
+import javax.swing.Timer;
+import javax.swing.UIManager;
+import javax.swing.border.TitledBorder;
 
 public class GestionCuentasView extends JFrame {
 
@@ -17,6 +39,10 @@ public class GestionCuentasView extends JFrame {
     private JTextField txtNumCuenta;
     private JRadioButton rbAhorros, rbCorriente, rbActiva, rbInactiva;
     private JButton btnGuardar, btnCancelar;
+    private JLabel lblMode;
+    
+    // Bandera para saber si guardamos una cuenta nueva o actualizamos una existente
+    private boolean modoEdicion = false;
 
     public GestionCuentasView() {
         // 1. Configuración de la Ventana Principal
@@ -63,7 +89,7 @@ public class GestionCuentasView extends JFrame {
 
         JLabel lblTitulo = new JLabel("<html><table cellpadding='0' cellspacing='0'><tr>" +
                 "<td><b style='color:#002b66; font-size:14px; font-family:Tahoma; letter-spacing:0.5px;'>BANCO UNICATOLICA</b></td>" +
-                "</tr><tr><td style='color:#444444; font-size:11px; padding-top:2px;'>Módulo de Cuentas — Apertura de Nuevos Productos</td></tr></table></html>");
+                "</tr><tr><td style='color:#444444; font-size:11px; padding-top:2px;'>Módulo de Cuentas — Gestión de Productos</td></tr></table></html>");
 
         pnlIzquierdo.add(lblLogo);
         pnlIzquierdo.add(lblTitulo);
@@ -96,7 +122,7 @@ public class GestionCuentasView extends JFrame {
         JPanel modePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
         modePanel.setBackground(new Color(232, 236, 244));
         modePanel.setBorder(BorderFactory.createLineBorder(new Color(178, 194, 222)));
-        JLabel lblMode = new JLabel("Ficha de creación y vinculación de nueva cuenta bancaria.");
+        lblMode = new JLabel("Ficha de creación y vinculación de nueva cuenta bancaria.");
         lblMode.setFont(new Font("Tahoma", Font.PLAIN, 12));
         lblMode.setForeground(new Color(51, 51, 51));
         modePanel.add(lblMode);
@@ -135,7 +161,6 @@ public class GestionCuentasView extends JFrame {
         lblNumCuenta.setFont(labelFont);
         formPanel.add(lblNumCuenta, gbc);
 
-        // Se bloquea la edición pero se mantiene visualmente claro
         txtNumCuenta = new JTextField("");
         txtNumCuenta.setFont(new Font("Monospaced", Font.BOLD, 14));
         txtNumCuenta.setForeground(new Color(0, 51, 153));
@@ -146,7 +171,6 @@ public class GestionCuentasView extends JFrame {
         JPanel wrapCuenta = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         wrapCuenta.setOpaque(false);
         wrapCuenta.add(txtNumCuenta);
-        wrapCuenta.add(new JLabel("  (Generado automáticamente)"));
 
         gbc.gridx = 1; gbc.weightx = 1.0; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.anchor = GridBagConstraints.WEST;
         formPanel.add(wrapCuenta, gbc);
@@ -197,25 +221,6 @@ public class GestionCuentasView extends JFrame {
         gbc.gridx = 1; gbc.weightx = 1.0; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.anchor = GridBagConstraints.WEST;
         formPanel.add(wrapEstado, gbc);
 
-        // --- Fila 5: Banner informativo ---
-        JPanel infoPanel = new JPanel(new BorderLayout(8, 0));
-        infoPanel.setBackground(new Color(232, 240, 254));
-        infoPanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(148, 184, 232)),
-                BorderFactory.createEmptyBorder(8, 12, 8, 12)
-        ));
-        JLabel lblIconInfo = new JLabel("<html><b style='color:#1a4f8b; font-size:14px; margin-left:5px;'>i</b></html>");
-        JLabel lblTextInfo = new JLabel("<html><span style='color:#1a4f8b; font-size:11.5px;'>" +
-                "<b>Información:</b> El sistema asigna automáticamente un número de cuenta único. " +
-                "Toda nueva cuenta se creará con un saldo inicial de <b>$ 0.00</b> por defecto. " +
-                "Los depósitos posteriores deben realizarse desde el Módulo de Operaciones de Caja.</span></html>");
-        infoPanel.add(lblIconInfo, BorderLayout.WEST);
-        infoPanel.add(lblTextInfo, BorderLayout.CENTER);
-        
-        gbc.gridx = 0; gbc.gridy = 4; gbc.gridwidth = 2; gbc.weightx = 1.0; gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(15, 10, 10, 10);
-        formPanel.add(infoPanel, gbc);
-
         centerPanel.add(formPanel, BorderLayout.CENTER);
         add(centerPanel, BorderLayout.CENTER);
 
@@ -245,7 +250,7 @@ public class GestionCuentasView extends JFrame {
         
         JPanel statusBar = new JPanel(new FlowLayout(FlowLayout.LEFT));
         statusBar.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(153, 148, 136)));
-        statusBar.add(new JLabel("Listo. Esperando parámetros de la nueva cuenta... | MySQL DB"));
+        statusBar.add(new JLabel("Listo. Esperando parámetros de la cuenta... | MySQL DB"));
 
         bottomContainer.add(pnlBotones, BorderLayout.NORTH);
         bottomContainer.add(statusBar, BorderLayout.SOUTH);
@@ -253,18 +258,62 @@ public class GestionCuentasView extends JFrame {
 
         // 6. Eventos de botones
         btnCancelar.addActionListener(e -> dispose());
-        btnGuardar.addActionListener(e -> guardarNuevaCuentaBD());
+        btnGuardar.addActionListener(e -> guardarOActualizarCuentaBD()); // Cambio principal
 
-        // 7. Cargar datos iniciales
+        // 7. Cargar datos iniciales (Por defecto en modo creación)
         cargarClientesActivosBD();
         txtNumCuenta.setText(generarNumeroCuentaAuto());
     }
 
     // =========================================================
-    // MÉTODOS Y LÓGICA DE BASE DE DATOS
+    // NUEVO MÉTODO: MODO EDICIÓN (RF07)
+    // =========================================================
+    public void prepararEdicion(String numeroCuenta) {
+        this.modoEdicion = true;
+        setTitle("Banco Unicatolica - Modificación de Cuenta");
+        lblMode.setText("Ficha de modificación de parámetros y estado de la cuenta.");
+        btnGuardar.setText("✓ Actualizar Cuenta");
+
+        // Bloqueamos los campos inalterables
+        txtNumCuenta.setText(numeroCuenta);
+        cmbCliente.setEnabled(false); 
+
+        // Consultamos la BD para cargar el estado y tipo actual
+        String sql = "SELECT id_cliente, tipo_cuenta, estado FROM cuentas WHERE numero_cuenta = ?";
+        try (Connection conn = ConexionDB.conectar();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+             
+            stmt.setString(1, numeroCuenta);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                // Marcar RadioButtons según BD
+                String tipo = rs.getString("tipo_cuenta");
+                if ("Cuenta de Ahorros".equalsIgnoreCase(tipo)) rbAhorros.setSelected(true);
+                else rbCorriente.setSelected(true);
+                
+                String estado = rs.getString("estado");
+                if ("ACTIVA".equalsIgnoreCase(estado)) rbActiva.setSelected(true);
+                else rbInactiva.setSelected(true);
+
+                // Seleccionar al cliente correcto en el JComboBox
+                String idBusqueda = rs.getString("id_cliente") + " -";
+                for (int i = 0; i < cmbCliente.getItemCount(); i++) {
+                    if (cmbCliente.getItemAt(i).startsWith(idBusqueda)) {
+                        cmbCliente.setSelectedIndex(i);
+                        break;
+                    }
+                }
+            }
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Error al cargar los datos de la cuenta: " + ex.getMessage(), "Error SQL", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    // =========================================================
+    // MÉTODOS Y LÓGICA DE BASE DE DATOS (ACTUALIZADO)
     // =========================================================
 
-    // Generador automático de números de cuenta (Ej: 4102-5829-9102)
     private String generarNumeroCuentaAuto() {
         Random rnd = new Random();
         int bloque1 = 1000 + rnd.nextInt(9000);
@@ -287,7 +336,7 @@ public class GestionCuentasView extends JFrame {
                     String nom = rs.getString("nombres");
                     String ape = rs.getString("apellidos");
                     
-                    cmbCliente.addItem(id + " - " + doc + " - " + nom + " " + ape);
+                    cmbCliente.addItem(id + " - " + doc + " - " + nom + " " + (ape != null ? ape : ""));
                 }
             }
         } catch (SQLException ex) {
@@ -295,56 +344,76 @@ public class GestionCuentasView extends JFrame {
         }
     }
 
-    private void guardarNuevaCuentaBD() {
+    // Método que detecta si es un UPDATE (Edición) o un INSERT (Creación)
+    private void guardarOActualizarCuentaBD() {
         String numCuenta = txtNumCuenta.getText().trim();
-        
-        if (numCuenta.isEmpty() || cmbCliente.getSelectedIndex() == -1) {
-            JOptionPane.showMessageDialog(this, "Por favor asegúrese de tener un número de cuenta generado y un cliente seleccionado.", "Datos incompletos", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        String clienteSeleccionado = cmbCliente.getSelectedItem().toString();
-        int idCliente = Integer.parseInt(clienteSeleccionado.split(" - ")[0]);
-
         String tipo = rbAhorros.isSelected() ? "Cuenta de Ahorros" : "Cuenta Corriente";
         String estado = rbActiva.isSelected() ? "ACTIVA" : "INACTIVA";
-        double saldoInicial = 0.00;
 
-        try (Connection conn = ConexionDB.conectar()) {
-            if (conn != null) {
-                String sql = "INSERT INTO Cuentas (id_cliente, numero_cuenta, tipo_cuenta, saldo, estado) VALUES (?, ?, ?, ?, ?)";
-                PreparedStatement stmt = conn.prepareStatement(sql);
-                
-                stmt.setInt(1, idCliente);
-                stmt.setString(2, numCuenta);
-                stmt.setString(3, tipo);
-                stmt.setDouble(4, saldoInicial);
-                stmt.setString(5, estado);
-                
-                int filasAfectadas = stmt.executeUpdate();
-                
-                if (filasAfectadas > 0) {
-                    JOptionPane.showMessageDialog(this, 
-                            "La nueva cuenta ha sido aperturada exitosamente en el sistema.\n\n" +
-                            "Número Generado: " + numCuenta + "\n" +
-                            "Tipo: " + tipo + "\n" +
-                            "Saldo Inicial: $ 0.00", 
-                            "Apertura Exitosa", JOptionPane.INFORMATION_MESSAGE);
+        if (modoEdicion) {
+            // ================= LOGICA UPDATE =================
+            try (Connection conn = ConexionDB.conectar()) {
+                if (conn != null) {
+                    String sql = "UPDATE Cuentas SET tipo_cuenta = ?, estado = ? WHERE numero_cuenta = ?";
+                    PreparedStatement stmt = conn.prepareStatement(sql);
+                    stmt.setString(1, tipo);
+                    stmt.setString(2, estado);
+                    stmt.setString(3, numCuenta);
                     
-                    // Preparamos el formulario para la siguiente cuenta
-                    txtNumCuenta.setText(generarNumeroCuentaAuto());
-                    cmbCliente.setSelectedIndex(0);
-                    rbAhorros.setSelected(true);
-                    rbActiva.setSelected(true);
+                    int filasAfectadas = stmt.executeUpdate();
+                    if (filasAfectadas > 0) {
+                        JOptionPane.showMessageDialog(this, "La cuenta ha sido actualizada exitosamente.", "Actualización Exitosa", JOptionPane.INFORMATION_MESSAGE);
+                        dispose(); // Cierra la ventana tras editar
+                    }
                 }
+            } catch (SQLException ex) {
+                JOptionPane.showMessageDialog(this, "Error al actualizar la cuenta: " + ex.getMessage(), "Error SQL", JOptionPane.ERROR_MESSAGE);
             }
-        } catch (SQLException ex) {
-            if (ex.getErrorCode() == 1062) {
-                // Si por extrema casualidad se repite el número, le generamos uno nuevo al instante
-                txtNumCuenta.setText(generarNumeroCuentaAuto());
-                JOptionPane.showMessageDialog(this, "El número de cuenta generado colisionó con uno existente. Se ha generado uno nuevo automáticamente. Por favor, intente guardar de nuevo.", "Colisión de Número", JOptionPane.WARNING_MESSAGE);
-            } else {
-                JOptionPane.showMessageDialog(this, "Error al guardar la cuenta: " + ex.getMessage(), "Error SQL", JOptionPane.ERROR_MESSAGE);
+        } else {
+            // ================= LOGICA INSERT =================
+            if (numCuenta.isEmpty() || cmbCliente.getSelectedIndex() == -1) {
+                JOptionPane.showMessageDialog(this, "Asegúrese de tener un número de cuenta y un cliente seleccionado.", "Datos incompletos", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            String clienteSeleccionado = cmbCliente.getSelectedItem().toString();
+            int idCliente = Integer.parseInt(clienteSeleccionado.split(" - ")[0]);
+            double saldoInicial = 0.00;
+
+            try (Connection conn = ConexionDB.conectar()) {
+                if (conn != null) {
+                    String sql = "INSERT INTO Cuentas (id_cliente, numero_cuenta, tipo_cuenta, saldo, estado) VALUES (?, ?, ?, ?, ?)";
+                    PreparedStatement stmt = conn.prepareStatement(sql);
+                    
+                    stmt.setInt(1, idCliente);
+                    stmt.setString(2, numCuenta);
+                    stmt.setString(3, tipo);
+                    stmt.setDouble(4, saldoInicial);
+                    stmt.setString(5, estado);
+                    
+                    int filasAfectadas = stmt.executeUpdate();
+                    
+                    if (filasAfectadas > 0) {
+                        JOptionPane.showMessageDialog(this, 
+                                "La nueva cuenta ha sido aperturada exitosamente en el sistema.\n\n" +
+                                "Número Generado: " + numCuenta + "\n" +
+                                "Tipo: " + tipo + "\n" +
+                                "Saldo Inicial: $ 0.00", 
+                                "Apertura Exitosa", JOptionPane.INFORMATION_MESSAGE);
+                        
+                        txtNumCuenta.setText(generarNumeroCuentaAuto());
+                        cmbCliente.setSelectedIndex(0);
+                        rbAhorros.setSelected(true);
+                        rbActiva.setSelected(true);
+                    }
+                }
+            } catch (SQLException ex) {
+                if (ex.getErrorCode() == 1062) {
+                    txtNumCuenta.setText(generarNumeroCuentaAuto());
+                    JOptionPane.showMessageDialog(this, "El número de cuenta colisionó. Se ha generado uno nuevo automáticamente. Guarde de nuevo.", "Colisión de Número", JOptionPane.WARNING_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(this, "Error al guardar la cuenta: " + ex.getMessage(), "Error SQL", JOptionPane.ERROR_MESSAGE);
+                }
             }
         }
     }

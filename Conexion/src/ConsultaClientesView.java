@@ -1,17 +1,35 @@
-import javax.swing.*;
-import javax.swing.border.TitledBorder;
-import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableRowSorter;
-
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.Image;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import javax.swing.BorderFactory;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.JTextField;
+import javax.swing.ListSelectionModel;
+import javax.swing.RowFilter;
+import javax.swing.SwingUtilities;
+import javax.swing.Timer;
+import javax.swing.UIManager;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableRowSorter;
 
 public class ConsultaClientesView extends JFrame {
 
@@ -22,7 +40,7 @@ public class ConsultaClientesView extends JFrame {
 
     public ConsultaClientesView() {
         // 1. Configuración de la Ventana Principal
-        setTitle("Banco Unicatolica - Consulta de Clientes (RF02 / RF04)");
+        setTitle("Banco Unicatolica - Consulta de Clientes");
         setSize(900, 600);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -49,7 +67,7 @@ public class ConsultaClientesView extends JFrame {
                         BorderFactory.createLineBorder(new Color(180, 180, 180)),
                         BorderFactory.createEmptyBorder(8, 10, 8, 10))));
 
-        // Lado Izquierdo: Logo y Títulos
+        // Logo y Títulos
         JPanel pnlIzquierdo = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         pnlIzquierdo.setOpaque(false);
         JLabel lblLogo = new JLabel();
@@ -72,7 +90,7 @@ public class ConsultaClientesView extends JFrame {
         pnlIzquierdo.add(lblLogo);
         pnlIzquierdo.add(lblTitulo);
 
-        // Lado Derecho: Reloj
+        // Reloj
         JLabel lblReloj = new JLabel();
         lblReloj.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(0, 1, 0, 0, new Color(200, 200, 200)),
@@ -93,7 +111,7 @@ public class ConsultaClientesView extends JFrame {
         topContainer.add(headerPanel, BorderLayout.CENTER);
         add(topContainer, BorderLayout.NORTH);
 
-        // 4. Panel Central (Buscador y Tabla)
+        // 4. Panel Central Buscador y Tabla
         JPanel centerPanel = new JPanel(new BorderLayout(0, 10));
         centerPanel.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
 
@@ -158,9 +176,9 @@ public class ConsultaClientesView extends JFrame {
         statusBar.add(new JLabel("Listo. Módulo conectado a MySQL."));
         add(statusBar, BorderLayout.SOUTH);
 
-        // =========================================================
+      
         // 6. EVENTOS Y BÚSQUEDA
-        // =========================================================
+       
         TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(modeloTabla);
         tablaClientes.setRowSorter(sorter);
 
@@ -225,7 +243,7 @@ public class ConsultaClientesView extends JFrame {
                 String nombreCliente = modeloTabla.getValueAt(filaModelo, 1).toString();
 
                 String mensaje = "¿Está seguro que desea BORRAR DEFINITIVAMENTE este cliente?\n" +
-                        "Esta acción eliminará la fila física de la base de datos MySQL.\n\n" +
+                        "Esta acción eliminará el cliente de la Base De Datos.\n\n" +
                         "Documento: " + docCliente + "\n" +
                         "Titular: " + nombreCliente;
 
@@ -259,15 +277,14 @@ public class ConsultaClientesView extends JFrame {
                         // cuentas)
                         if (ex.getErrorCode() == 1451) {
                             JOptionPane.showMessageDialog(ConsultaClientesView.this,
-                                    "No se puede borrar este cliente porque tiene cuentas bancarias asignadas.\n\n" +
-                                            "La base de datos protege su información (Restricción de Llave Foránea).\n"
+                                    "No se puede borrar este cliente porque tiene cuentas bancarias asignadas.\n\n" 
                                             +
                                             "Debe borrar primero sus cuentas antes de borrar al cliente.",
-                                    "Protección de MySQL", JOptionPane.ERROR_MESSAGE);
+                                    "Aviso", JOptionPane.ERROR_MESSAGE);
                         } else {
                             JOptionPane.showMessageDialog(ConsultaClientesView.this,
                                     "Error al intentar borrar el cliente: " + ex.getMessage(),
-                                    "Error SQL", JOptionPane.ERROR_MESSAGE);
+                                    "Error", JOptionPane.ERROR_MESSAGE);
                         }
                     }
                 }
