@@ -7,6 +7,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 
 public class GestionClientesView extends JFrame {
@@ -14,6 +15,9 @@ public class GestionClientesView extends JFrame {
     private JTextField txtIdentificacion, txtNombre, txtTelefono, txtCorreo, txtDireccion;
     private JRadioButton rbActivo, rbInactivo;
     private JButton btnGuardar, btnCancelar;
+    
+    // Bandera para saber si estamos creando o editando
+    private boolean modoEdicion = false;
 
     public GestionClientesView() {
         // 1. Configuración de la Ventana Principal
@@ -31,7 +35,7 @@ public class GestionClientesView extends JFrame {
         }
         setJMenuBar(menuBar);
 
-        // 3. Panel Superior (Header estilo Web / Beige Claro)
+        // 3. Panel Superior (Header)
         JPanel topContainer = new JPanel(new BorderLayout());
         topContainer.setBackground(new Color(236, 233, 216));
         
@@ -46,60 +50,35 @@ public class GestionClientesView extends JFrame {
                 )
         ));
 
-        // --- Lado Izquierdo: Logo y Títulos ---
+        // Lado Izquierdo
         JPanel pnlIzquierdo = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         pnlIzquierdo.setOpaque(false);
-        
         JLabel lblLogo = new JLabel();
         try {
             java.net.URL imgURL = getClass().getResource("/banco_unicatolica.jpg");
             if (imgURL != null) {
-                ImageIcon icon = new ImageIcon(imgURL);
-                Image img = icon.getImage().getScaledInstance(55, 55, Image.SCALE_SMOOTH);
+                Image img = new ImageIcon(imgURL).getImage().getScaledInstance(55, 55, Image.SCALE_SMOOTH);
                 lblLogo.setIcon(new ImageIcon(img));
-            } else {
-                System.out.println("Aviso: No se encontró la imagen en el Classpath.");
             }
-        } catch (Exception ex) {
-            System.err.println("Error al cargar imagen: " + ex.getMessage());
-        }
+        } catch (Exception ex) {}
 
-        JLabel lblTitulo = new JLabel("<html>" +
-                "<table cellpadding='0' cellspacing='0'>" +
-                "<tr>" +
+        JLabel lblTitulo = new JLabel("<html><table cellpadding='0' cellspacing='0'><tr>" +
                 "<td valign='middle'><b style='color:#002b66; font-size:15px; font-family:Tahoma;'>BANCO UNICATOLICA</b></td>" +
-                "<td width='10'></td>" +
-                "<td valign='middle'><div style='font-size:9px; color:#003882; background-color:#e2ecf8; border:1px solid #9bbbe1; padding:2px 5px;'>Módulo de Gestión de Clientes</div></td>" +
-                "</tr>" +
-                "<tr>" +
-                "<td colspan='3' style='color:#555555; font-size:10px; padding-top:3px; font-family:Tahoma;'>Registro, actualización y administración de datos maestros</td>" +
-                "</tr>" +
-                "</table>" +
-                "</html>");
+                "<td width='10'></td><td valign='middle'><div style='font-size:9px; color:#003882; background-color:#e2ecf8; border:1px solid #9bbbe1; padding:2px 5px;'>Módulo de Gestión de Clientes</div></td>" +
+                "</tr><tr><td colspan='3' style='color:#555555; font-size:10px; padding-top:3px; font-family:Tahoma;'>Registro, actualización y administración de datos maestros</td></tr></table></html>");
 
         pnlIzquierdo.add(lblLogo);
         pnlIzquierdo.add(lblTitulo);
 
-        // --- Lado Derecho: Reloj en vivo y Estado ---
+        // Lado Derecho
         JLabel lblReloj = new JLabel();
-        lblReloj.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 1, 0, 0, new Color(200, 200, 200)),
-                BorderFactory.createEmptyBorder(0, 15, 0, 5)
-        ));
-
-        Timer timer = new Timer(1000, new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String horaStr = new SimpleDateFormat("hh:mm:ss a").format(new Date());
-                String fechaStr = new SimpleDateFormat("dd/MM/yyyy").format(new Date());
-                
-                lblReloj.setText("<html><div style='text-align:right; font-family:Tahoma;'>" +
-                    "<span style='color:#004080; font-size:13px;'>&#128338;</span> " + 
-                    "<b style='font-family:monospace; font-size:11px; background-color:white; border:1px solid #808080; padding:1px 5px; color:#000;'>" + horaStr + " COT</b><br>" +
-                    "<span style='font-size:9px; color:#555;'>Zona horaria: <b style='color:black;'>Colombia (UTC-5)</b> | " + fechaStr + "</span><br>" +
-                    "<span style='font-size:9px; color:#00aa00; font-weight:bold;'>&#9679; Servidor Sede Central: Conectado</span>" +
-                    "</div></html>");
-            }
+        lblReloj.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0, 1, 0, 0, new Color(200, 200, 200)), BorderFactory.createEmptyBorder(0, 15, 0, 5)));
+        Timer timer = new Timer(1000, e -> {
+            String horaStr = new SimpleDateFormat("hh:mm:ss a").format(new Date());
+            lblReloj.setText("<html><div style='text-align:right; font-family:Tahoma;'>" +
+                "<span style='color:#004080; font-size:13px;'>&#128338;</span> <b style='font-family:monospace; font-size:11px; background-color:white; border:1px solid #808080; padding:1px 5px; color:#000;'>" + horaStr + " COT</b><br>" +
+                "<span style='font-size:9px; color:#555;'>Zona horaria: Colombia (UTC-5)</span><br>" +
+                "<span style='font-size:9px; color:#00aa00; font-weight:bold;'>&#9679; Conectado</span></div></html>");
         });
         timer.start();
 
@@ -192,7 +171,51 @@ public class GestionClientesView extends JFrame {
     }
 
     // =========================================================
-    // LÓGICA DE BASE DE DATOS
+    // NUEVO: CARGAR DATOS PARA MODO EDICIÓN
+    // =========================================================
+    public void cargarDatosCliente(String documento) {
+        modoEdicion = true;
+        setTitle("Banco Unicatolica - Edición de Cliente");
+        btnGuardar.setText("Actualizar Cliente");
+        
+        // Bloqueamos la cédula para que no rompa la base de datos al actualizar
+        txtIdentificacion.setText(documento);
+        txtIdentificacion.setEditable(false);
+        txtIdentificacion.setBackground(new Color(235, 235, 235));
+
+        try (Connection conn = ConexionDB.conectar()) {
+            if (conn != null) {
+                String sql = "SELECT nombres, apellidos, telefono, correo, direccion, estado FROM Clientes WHERE numero_documento = ?";
+                PreparedStatement stmt = conn.prepareStatement(sql);
+                stmt.setString(1, documento);
+                ResultSet rs = stmt.executeQuery();
+
+                if (rs.next()) {
+                    String nombreFull = rs.getString("nombres");
+                    String apellidos = rs.getString("apellidos");
+                    if (apellidos != null && !apellidos.isEmpty()) {
+                        nombreFull += " " + apellidos;
+                    }
+                    
+                    txtNombre.setText(nombreFull);
+                    txtTelefono.setText(rs.getString("telefono"));
+                    txtCorreo.setText(rs.getString("correo"));
+                    txtDireccion.setText(rs.getString("direccion"));
+                    
+                    if ("ACTIVO".equalsIgnoreCase(rs.getString("estado"))) {
+                        rbActivo.setSelected(true);
+                    } else {
+                        rbInactivo.setSelected(true);
+                    }
+                }
+            }
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Error al cargar los datos: " + ex.getMessage(), "Error SQL", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    // =========================================================
+    // LÓGICA DE GUARDADO O ACTUALIZACIÓN
     // =========================================================
     private void guardarClienteBD() {
         String identificacion = txtIdentificacion.getText().trim();
@@ -202,47 +225,50 @@ public class GestionClientesView extends JFrame {
         String direccion = txtDireccion.getText().trim();
         String estado = rbActivo.isSelected() ? "ACTIVO" : "INACTIVO";
 
-        // Validación básica
         if (identificacion.isEmpty() || nombre.isEmpty() || telefono.isEmpty() || correo.isEmpty() || direccion.isEmpty()) {
-            if(correo.isEmpty()) txtCorreo.setBackground(new Color(255, 240, 240));
-            JOptionPane.showMessageDialog(this,
-                    "Debe diligenciar todos los campos obligatorios marcados con asterisco rojo.\n\n" +
-                    "Por favor verifique los datos ingresados.",
-                    "Error de Validación", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Debe diligenciar todos los campos obligatorios (*).", "Validación", JOptionPane.ERROR_MESSAGE);
             return;
         }
-        
-        txtCorreo.setBackground(Color.WHITE);
 
-        // Inserción en la base de datos MySQL
         try (Connection conn = ConexionDB.conectar()) {
             if (conn != null) {
-                // Se envía 'CC' como tipo_documento y un espacio en apellidos para cumplir con el esquema NOT NULL de tu BD
-                String sql = "INSERT INTO Clientes (tipo_documento, numero_documento, nombres, apellidos, telefono, correo, direccion, estado) VALUES ('CC', ?, ?, '', ?, ?, ?, ?)";
-                
-                PreparedStatement stmt = conn.prepareStatement(sql);
-                stmt.setString(1, identificacion);
-                stmt.setString(2, nombre);
-                stmt.setString(3, telefono);
-                stmt.setString(4, correo);
-                stmt.setString(5, direccion);
-                stmt.setString(6, estado);
-                
-                int filasAfectadas = stmt.executeUpdate();
-                
-                if (filasAfectadas > 0) {
-                    JOptionPane.showMessageDialog(this, "El cliente ha sido registrado exitosamente en la base de datos.", "Registro Exitoso", JOptionPane.INFORMATION_MESSAGE);
-                    // Limpiar el formulario para un nuevo registro
-                    txtIdentificacion.setText("");
-                    txtNombre.setText("");
-                    txtTelefono.setText("");
-                    txtCorreo.setText("");
-                    txtDireccion.setText("");
-                    rbActivo.setSelected(true);
+                if (modoEdicion) {
+                    // ACTUALIZAR (UPDATE)
+                    String sql = "UPDATE Clientes SET nombres = ?, telefono = ?, correo = ?, direccion = ?, estado = ? WHERE numero_documento = ?";
+                    PreparedStatement stmt = conn.prepareStatement(sql);
+                    stmt.setString(1, nombre);
+                    stmt.setString(2, telefono);
+                    stmt.setString(3, correo);
+                    stmt.setString(4, direccion);
+                    stmt.setString(5, estado);
+                    stmt.setString(6, identificacion);
+                    
+                    int filas = stmt.executeUpdate();
+                    if (filas > 0) {
+                        JOptionPane.showMessageDialog(this, "Los datos del cliente han sido actualizados exitosamente.", "Actualización Exitosa", JOptionPane.INFORMATION_MESSAGE);
+                        dispose(); // Cierra la ventana tras actualizar
+                    }
+                } else {
+                    // REGISTRAR NUEVO (INSERT)
+                    String sql = "INSERT INTO Clientes (tipo_documento, numero_documento, nombres, apellidos, telefono, correo, direccion, estado) VALUES ('CC', ?, ?, '', ?, ?, ?, ?)";
+                    PreparedStatement stmt = conn.prepareStatement(sql);
+                    stmt.setString(1, identificacion);
+                    stmt.setString(2, nombre);
+                    stmt.setString(3, telefono);
+                    stmt.setString(4, correo);
+                    stmt.setString(5, direccion);
+                    stmt.setString(6, estado);
+                    
+                    int filas = stmt.executeUpdate();
+                    if (filas > 0) {
+                        JOptionPane.showMessageDialog(this, "El cliente ha sido registrado exitosamente.", "Registro Exitoso", JOptionPane.INFORMATION_MESSAGE);
+                        txtIdentificacion.setText(""); txtNombre.setText(""); txtTelefono.setText("");
+                        txtCorreo.setText(""); txtDireccion.setText(""); rbActivo.setSelected(true);
+                    }
                 }
             }
         } catch (SQLException ex) {
-            JOptionPane.showMessageDialog(this, "Error al guardar el cliente: " + ex.getMessage(), "Error SQL", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Error en la base de datos: " + ex.getMessage(), "Error SQL", JOptionPane.ERROR_MESSAGE);
         }
     }
 

@@ -30,7 +30,7 @@ public class ConsultaClientesView extends JFrame {
 
         // 2. Barra de Menú
         JMenuBar menuBar = new JMenuBar();
-        String[] menus = {"Cerrar Sesion", "Clientes", "Cuentas", "Operaciones", "Reportes", "Ayuda"};
+        String[] menus = { "Cerrar Sesion", "Clientes", "Cuentas", "Operaciones", "Reportes", "Ayuda" };
         for (String m : menus) {
             menuBar.add(new JMenu(m));
         }
@@ -39,7 +39,7 @@ public class ConsultaClientesView extends JFrame {
         // 3. Panel Superior (Header Institucional)
         JPanel topContainer = new JPanel(new BorderLayout());
         topContainer.setBackground(new Color(236, 233, 216));
-        
+
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setBackground(new Color(245, 243, 233));
         headerPanel.setOpaque(true);
@@ -47,9 +47,7 @@ public class ConsultaClientesView extends JFrame {
                 BorderFactory.createEmptyBorder(10, 15, 5, 15),
                 BorderFactory.createCompoundBorder(
                         BorderFactory.createLineBorder(new Color(180, 180, 180)),
-                        BorderFactory.createEmptyBorder(8, 10, 8, 10)
-                )
-        ));
+                        BorderFactory.createEmptyBorder(8, 10, 8, 10))));
 
         // Lado Izquierdo: Logo y Títulos
         JPanel pnlIzquierdo = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
@@ -61,11 +59,14 @@ public class ConsultaClientesView extends JFrame {
                 Image img = new ImageIcon(imgURL).getImage().getScaledInstance(55, 55, Image.SCALE_SMOOTH);
                 lblLogo.setIcon(new ImageIcon(img));
             }
-        } catch (Exception ex) {}
+        } catch (Exception ex) {
+        }
 
         JLabel lblTitulo = new JLabel("<html><table cellpadding='0' cellspacing='0'><tr>" +
-                "<td valign='middle'><b style='color:#002b66; font-size:15px; font-family:Tahoma;'>BANCO UNICATOLICA</b></td>" +
-                "<td width='10'></td><td valign='middle'><div style='font-size:9px; color:#003882; background-color:#e2ecf8; border:1px solid #9bbbe1; padding:2px 5px;'>Módulo de Clientes</div></td>" +
+                "<td valign='middle'><b style='color:#002b66; font-size:15px; font-family:Tahoma;'>BANCO UNICATOLICA</b></td>"
+                +
+                "<td width='10'></td><td valign='middle'><div style='font-size:9px; color:#003882; background-color:#e2ecf8; border:1px solid #9bbbe1; padding:2px 5px;'>Módulo de Clientes</div></td>"
+                +
                 "</tr><tr><td colspan='3' style='color:#555555; font-size:10px; padding-top:3px;'>Búsqueda de registros y Borrado Físico</td></tr></table></html>");
 
         pnlIzquierdo.add(lblLogo);
@@ -73,14 +74,17 @@ public class ConsultaClientesView extends JFrame {
 
         // Lado Derecho: Reloj
         JLabel lblReloj = new JLabel();
-        lblReloj.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0, 1, 0, 0, new Color(200, 200, 200)), BorderFactory.createEmptyBorder(0, 15, 0, 5)));
+        lblReloj.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 1, 0, 0, new Color(200, 200, 200)),
+                BorderFactory.createEmptyBorder(0, 15, 0, 5)));
         Timer timer = new Timer(1000, e -> {
             String horaStr = new SimpleDateFormat("hh:mm:ss a").format(new Date());
             lblReloj.setText("<html><div style='text-align:right; font-family:Tahoma;'>" +
-                "<span style='color:#004080; font-size:13px;'>&#128338;</span> " + 
-                "<b style='font-family:monospace; font-size:11px; background-color:white; border:1px solid #808080; padding:1px 5px; color:#000;'>" + horaStr + " COT</b><br>" +
-                "<span style='font-size:9px; color:#555;'>Zona horaria: Colombia (UTC-5)</span><br>" +
-                "<span style='font-size:9px; color:#00aa00; font-weight:bold;'>&#9679; MySQL DB: Conectado</span></div></html>");
+                    "<span style='color:#004080; font-size:13px;'>&#128338;</span> " +
+                    "<b style='font-family:monospace; font-size:11px; background-color:white; border:1px solid #808080; padding:1px 5px; color:#000;'>"
+                    + horaStr + " COT</b><br>" +
+                    "<span style='font-size:9px; color:#555;'>Zona horaria: Colombia (UTC-5)</span><br>" +
+                    "<span style='font-size:9px; color:#00aa00; font-weight:bold;'>&#9679; MySQL DB: Conectado</span></div></html>");
         });
         timer.start();
 
@@ -95,23 +99,26 @@ public class ConsultaClientesView extends JFrame {
 
         // 4.1 Panel de Búsqueda
         JPanel pnlBusqueda = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
-        pnlBusqueda.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.GRAY), "Criterios de Consulta"));
+        pnlBusqueda.setBorder(
+                BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.GRAY), "Criterios de Consulta"));
         pnlBusqueda.add(new JLabel("Buscar por Documento o Nombre:"));
         txtBusqueda = new JTextField(20);
         pnlBusqueda.add(txtBusqueda);
-        
+
         btnBuscar = new JButton("Buscar");
         btnLimpiar = new JButton("Limpiar Filtro");
         pnlBusqueda.add(btnBuscar);
         pnlBusqueda.add(btnLimpiar);
-        
+
         centerPanel.add(pnlBusqueda, BorderLayout.NORTH);
 
         // 4.2 Tabla de Resultados
-        String[] columnas = {"Documento", "Nombre Completo", "Teléfono", "Correo", "Dirección", "Estado"};
+        String[] columnas = { "Documento", "Nombre Completo", "Teléfono", "Correo", "Dirección", "Estado" };
         modeloTabla = new DefaultTableModel(columnas, 0) {
             @Override
-            public boolean isCellEditable(int row, int column) { return false; }
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
         };
         tablaClientes = new JTable(modeloTabla);
         tablaClientes.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
@@ -119,12 +126,13 @@ public class ConsultaClientesView extends JFrame {
         tablaClientes.getTableHeader().setFont(new Font("Arial", Font.BOLD, 12));
 
         JScrollPane scrollTabla = new JScrollPane(tablaClientes);
-        scrollTabla.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY), "Registros de Clientes en Base de Datos"));
+        scrollTabla.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY),
+                "Registros de Clientes en Base de Datos"));
         centerPanel.add(scrollTabla, BorderLayout.CENTER);
 
         // 4.3 Botones de Acción Inferiores
         JPanel pnlAcciones = new JPanel(new BorderLayout());
-        
+
         JPanel pnlIzquierdaAcciones = new JPanel(new FlowLayout(FlowLayout.LEFT));
         btnEditar = new JButton("Ver Detalle / Editar");
         btnNuevo = new JButton("Nuevo Cliente");
@@ -140,7 +148,7 @@ public class ConsultaClientesView extends JFrame {
 
         pnlAcciones.add(pnlIzquierdaAcciones, BorderLayout.WEST);
         pnlAcciones.add(pnlDerechaAcciones, BorderLayout.EAST);
-        
+
         centerPanel.add(pnlAcciones, BorderLayout.SOUTH);
         add(centerPanel, BorderLayout.CENTER);
 
@@ -173,15 +181,41 @@ public class ConsultaClientesView extends JFrame {
             sorter.setRowFilter(null);
         });
 
+        // Evento para abrir la ventana de Nuevo Cliente
+        btnNuevo.addActionListener(e -> {
+            GestionClientesView ventanaNuevo = new GestionClientesView();
+            ventanaNuevo.setVisible(true);
+        });
+
+        // Evento para Ver Detalle / Editar
+        btnEditar.addActionListener(e -> {
+            int filaVisual = tablaClientes.getSelectedRow();
+            
+            if (filaVisual == -1) {
+                JOptionPane.showMessageDialog(ConsultaClientesView.this, 
+                        "Por favor, seleccione un cliente de la tabla para editar.", 
+                        "Atención", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            int filaModelo = tablaClientes.convertRowIndexToModel(filaVisual);
+            String docCliente = modeloTabla.getValueAt(filaModelo, 0).toString().trim();
+            
+            // Abre la ventana, le pasa el documento para que extraiga los datos, y la muestra
+            GestionClientesView ventanaEdicion = new GestionClientesView();
+            ventanaEdicion.cargarDatosCliente(docCliente);
+            ventanaEdicion.setVisible(true);
+        });
+        
         // Evento de ELIMINACIÓN FÍSICA en MySQL (DELETE)
         btnEliminar.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 int filaVisual = tablaClientes.getSelectedRow();
-                
+
                 if (filaVisual == -1) {
-                    JOptionPane.showMessageDialog(ConsultaClientesView.this, 
-                            "Por favor, seleccione un cliente de la tabla para eliminar.", 
+                    JOptionPane.showMessageDialog(ConsultaClientesView.this,
+                            "Por favor, seleccione un cliente de la tabla para eliminar.",
                             "Atención", JOptionPane.WARNING_MESSAGE);
                     return;
                 }
@@ -191,12 +225,12 @@ public class ConsultaClientesView extends JFrame {
                 String nombreCliente = modeloTabla.getValueAt(filaModelo, 1).toString();
 
                 String mensaje = "¿Está seguro que desea BORRAR DEFINITIVAMENTE este cliente?\n" +
-                                 "Esta acción eliminará la fila física de la base de datos MySQL.\n\n" +
-                                 "Documento: " + docCliente + "\n" +
-                                 "Titular: " + nombreCliente;
+                        "Esta acción eliminará la fila física de la base de datos MySQL.\n\n" +
+                        "Documento: " + docCliente + "\n" +
+                        "Titular: " + nombreCliente;
 
-                int confirmacion = JOptionPane.showConfirmDialog(ConsultaClientesView.this, 
-                        mensaje, "Confirmación de Eliminación", 
+                int confirmacion = JOptionPane.showConfirmDialog(ConsultaClientesView.this,
+                        mensaje, "Confirmación de Eliminación",
                         JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
 
                 if (confirmacion == JOptionPane.YES_OPTION) {
@@ -206,31 +240,33 @@ public class ConsultaClientesView extends JFrame {
                             String sql = "DELETE FROM clientes WHERE numero_documento = ?";
                             PreparedStatement stmt = conn.prepareStatement(sql);
                             stmt.setString(1, docCliente);
-                            
+
                             int filas = stmt.executeUpdate();
                             if (filas > 0) {
-                                JOptionPane.showMessageDialog(ConsultaClientesView.this, 
-                                        "El cliente ha sido eliminado completamente de la base de datos.", 
+                                JOptionPane.showMessageDialog(ConsultaClientesView.this,
+                                        "El cliente ha sido eliminado completamente de la base de datos.",
                                         "Borrado Exitoso", JOptionPane.INFORMATION_MESSAGE);
                                 // Recargamos para que desaparezca de la pantalla
-                                cargarClientesBD(); 
+                                cargarClientesBD();
                             } else {
-                                JOptionPane.showMessageDialog(ConsultaClientesView.this, 
-                                        "No se encontró el registro con el documento " + docCliente + ".", 
+                                JOptionPane.showMessageDialog(ConsultaClientesView.this,
+                                        "No se encontró el registro con el documento " + docCliente + ".",
                                         "Aviso", JOptionPane.WARNING_MESSAGE);
                             }
                         }
                     } catch (SQLException ex) {
-                        // Error 1451: MySQL bloquea el borrado por la Llave Foránea (el cliente tiene cuentas)
+                        // Error 1451: MySQL bloquea el borrado por la Llave Foránea (el cliente tiene
+                        // cuentas)
                         if (ex.getErrorCode() == 1451) {
-                            JOptionPane.showMessageDialog(ConsultaClientesView.this, 
-                                "No se puede borrar este cliente porque tiene cuentas bancarias asignadas.\n\n" +
-                                "La base de datos protege su información (Restricción de Llave Foránea).\n" +
-                                "Debe borrar primero sus cuentas antes de borrar al cliente.", 
-                                "Protección de MySQL", JOptionPane.ERROR_MESSAGE);
+                            JOptionPane.showMessageDialog(ConsultaClientesView.this,
+                                    "No se puede borrar este cliente porque tiene cuentas bancarias asignadas.\n\n" +
+                                            "La base de datos protege su información (Restricción de Llave Foránea).\n"
+                                            +
+                                            "Debe borrar primero sus cuentas antes de borrar al cliente.",
+                                    "Protección de MySQL", JOptionPane.ERROR_MESSAGE);
                         } else {
-                            JOptionPane.showMessageDialog(ConsultaClientesView.this, 
-                                    "Error al intentar borrar el cliente: " + ex.getMessage(), 
+                            JOptionPane.showMessageDialog(ConsultaClientesView.this,
+                                    "Error al intentar borrar el cliente: " + ex.getMessage(),
                                     "Error SQL", JOptionPane.ERROR_MESSAGE);
                         }
                     }
@@ -261,7 +297,7 @@ public class ConsultaClientesView extends JFrame {
                     String dir = rs.getString("direccion");
                     String estado = rs.getString("estado");
 
-                    modeloTabla.addRow(new Object[]{doc, nombre, tel, correo, dir, estado});
+                    modeloTabla.addRow(new Object[] { doc, nombre, tel, correo, dir, estado });
                 }
             }
         } catch (SQLException ex) {
@@ -270,7 +306,10 @@ public class ConsultaClientesView extends JFrame {
     }
 
     public static void main(String[] args) {
-        try { UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()); } catch (Exception e) {}
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (Exception e) {
+        }
         SwingUtilities.invokeLater(() -> new ConsultaClientesView().setVisible(true));
     }
 }
