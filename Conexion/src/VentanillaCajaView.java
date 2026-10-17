@@ -1,0 +1,424 @@
+import javax.swing.*;
+import javax.swing.border.TitledBorder;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+public class VentanillaCajaView extends JFrame {
+
+    private JTextField txtNumCuenta, txtMonto;
+    private JLabel lblTitular, lblIdentificacion, lblTipoCuenta, lblSaldo, lblAdvertencia;
+    private JRadioButton rbDeposito, rbRetiro;
+    private JButton btnVerificar, btnProcesar, btnLimpiar;
+    
+    private double saldoActual = 350000.00;
+    private String estadoCuentaActual = "ACTIVA";
+
+    public VentanillaCajaView() {
+        // 1. Configuración de la Ventana Principal
+        setTitle("Banco Unicatolica - Ventanilla de Caja y Transacciones (RF09)");
+        setSize(1000, 680);
+        setMinimumSize(new Dimension(950, 620));
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setLocationRelativeTo(null);
+        setLayout(new BorderLayout());
+
+        // 2. Barra de Menú
+        JMenuBar menuBar = new JMenuBar();
+        String[] menus = {"Cerrar Sesion", "Clientes", "Cuentas", "Operaciones (Caja)", "Reportes", "Seguridad", "Ayuda"};
+        for (String m : menus) {
+            JMenu menu = new JMenu(m);
+            if (m.startsWith("Operaciones")) menu.setForeground(new Color(0, 51, 153));
+            menuBar.add(menu);
+        }
+        setJMenuBar(menuBar);
+
+        // 3. Header Institucional
+        JPanel topContainer = new JPanel(new BorderLayout());
+        topContainer.setBackground(new Color(236, 233, 216));
+
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(Color.WHITE);
+        headerPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(172, 168, 153)),
+                BorderFactory.createEmptyBorder(10, 14, 10, 14)
+        ));
+
+        // Lado Izquierdo
+        JPanel pnlIzquierdo = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
+        pnlIzquierdo.setOpaque(false);
+        JLabel lblLogo = new JLabel();
+        try {
+            java.net.URL imgURL = getClass().getResource("/banco_unicatolica.jpg");
+            if (imgURL != null) {
+                Image img = new ImageIcon(imgURL).getImage().getScaledInstance(50, 50, Image.SCALE_SMOOTH);
+                lblLogo.setIcon(new ImageIcon(img));
+            }
+        } catch (Exception ex) {}
+
+        JLabel lblTitulo = new JLabel("<html><table cellpadding='0' cellspacing='0'><tr>" +
+                "<td><b style='color:#002b66; font-size:15px; font-family:Tahoma;'>BANCO UNICATOLICA</b></td>" +
+                "</tr><tr><td style='color:#444444; font-size:11px; padding-top:2px;'>Módulo de Transacciones Rápidas de Caja — Depósitos y Retiros</td></tr></table></html>");
+
+        pnlIzquierdo.add(lblLogo);
+        pnlIzquierdo.add(lblTitulo);
+
+        // Lado Derecho
+        JLabel lblInfoCaja = new JLabel();
+        lblInfoCaja.setOpaque(true);
+        lblInfoCaja.setBackground(new Color(242, 240, 230));
+        lblInfoCaja.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(187, 187, 187)),
+                BorderFactory.createEmptyBorder(6, 10, 6, 10)
+        ));
+
+        Timer timer = new Timer(1000, e -> {
+            String horaStr = new SimpleDateFormat("hh:mm:ss a").format(new Date());
+            lblInfoCaja.setText("<html><div style='text-align:right; font-family:Tahoma; font-size:10.5px; color:#333;'>" +
+                "<span style='color:#00aa00;'>&#9679;</span> <b>Terminal:</b> WS-CAJA-03 | <b>Operador:</b> operador_caja1<br>" +
+                "<span>Hora oficial Colombia (UTC-5): <b>" + horaStr + " COT</b> | Base: En línea</span>" +
+                "</div></html>");
+        });
+        timer.start();
+
+        headerPanel.add(pnlIzquierdo, BorderLayout.WEST);
+        headerPanel.add(lblInfoCaja, BorderLayout.EAST);
+        topContainer.add(headerPanel, BorderLayout.CENTER);
+        add(topContainer, BorderLayout.NORTH);
+
+        // 4. Panel Central Formulario (Pasos 1 y 2)
+        JPanel centerPanel = new JPanel();
+        centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.Y_AXIS));
+        centerPanel.setBorder(BorderFactory.createEmptyBorder(10, 14, 10, 14));
+
+        // --- PASO 1: Búsqueda y Validación de Cuenta ---
+        JPanel pnlPaso1 = new JPanel(new BorderLayout(0, 8));
+        pnlPaso1.setBackground(new Color(247, 246, 240));
+        pnlPaso1.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(new Color(160, 160, 160)),
+                "1. Consulta y Selección de Cuenta Destino / Origen", TitledBorder.LEFT, TitledBorder.TOP,
+                new Font("Tahoma", Font.BOLD, 11), new Color(0, 43, 102)));
+
+        JPanel pnlBusqueda = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
+        pnlBusqueda.setOpaque(false);
+        pnlBusqueda.add(new JLabel("<html><b>* Número de Cuenta:</b></html>"));
+
+        txtNumCuenta = new JTextField("4102-8849-1029", 18);
+        txtNumCuenta.setFont(new Font("Consolas", Font.BOLD, 13));
+        txtNumCuenta.setForeground(new Color(0, 43, 102));
+        pnlBusqueda.add(txtNumCuenta);
+
+        btnVerificar = new JButton("Verificar Cuenta");
+        btnVerificar.setFont(new Font("Tahoma", Font.BOLD, 11));
+        pnlBusqueda.add(btnVerificar);
+
+        JLabel lblHint = new JLabel("<html><span style='color:#002b66; font-weight:bold;'>[F2]</span> Búsqueda rápida por cédula</span></html>");
+        pnlBusqueda.add(lblHint);
+
+        pnlPaso1.add(pnlBusqueda, BorderLayout.NORTH);
+
+        // Ficha de Datos
+        JPanel pnlFicha = new JPanel(new GridLayout(1, 4, 10, 0));
+        pnlFicha.setBackground(new Color(234, 231, 214));
+        pnlFicha.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(196, 190, 170)),
+                BorderFactory.createEmptyBorder(8, 10, 8, 10)
+        ));
+
+        lblTitular = new JLabel("<html><span style='color:#666;'>Titular:</span><br><b>Carlos Alberto Gómez Ramírez</b></html>");
+        lblIdentificacion = new JLabel("<html><span style='color:#666;'>Identificación (C.C.):</span><br><b style='font-family:monospace;'>1144089231</b></html>");
+        lblTipoCuenta = new JLabel("<html><span style='color:#666;'>Tipo de Producto:</span><br><b style='color:#002b66;'>Cuenta de Ahorros Tradicional</b></html>");
+        lblSaldo = new JLabel("<html><span style='color:#666;'>Saldo Disponible Actual:</span><br><b style='color:#006600; font-family:monospace; background-color:#e6ffe6; padding:2px;'>$ 350.000,00 COP</b></html>");
+
+        pnlFicha.add(lblTitular);
+        pnlFicha.add(lblIdentificacion);
+        pnlFicha.add(lblTipoCuenta);
+        pnlFicha.add(lblSaldo);
+
+        pnlPaso1.add(pnlFicha, BorderLayout.CENTER);
+        centerPanel.add(pnlPaso1);
+
+        centerPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+
+        // --- PASO 2: Tipo de Transacción y Monto ---
+        JPanel pnlPaso2 = new JPanel(new GridBagLayout());
+        pnlPaso2.setBackground(new Color(247, 246, 240));
+        pnlPaso2.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(new Color(160, 160, 160)),
+                "2. Parámetros de la Transacción Ágil", TitledBorder.LEFT, TitledBorder.TOP,
+                new Font("Tahoma", Font.BOLD, 11), new Color(0, 43, 102)));
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(8, 10, 8, 10);
+        Font labelFont = new Font("Tahoma", Font.BOLD, 12);
+
+        // Fila 1: RadioButtons
+        gbc.gridx = 0; gbc.gridy = 0; gbc.anchor = GridBagConstraints.EAST;
+        JLabel lblTipoTrans = new JLabel("<html><nobr>* Tipo de Transacción:</nobr></html>");
+        lblTipoTrans.setFont(labelFont);
+        pnlPaso2.add(lblTipoTrans, gbc);
+
+        JPanel pnlRadioGroup = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
+        pnlRadioGroup.setOpaque(false);
+        rbDeposito = new JRadioButton("Depósitos en Efectivo (+)");
+        rbRetiro = new JRadioButton("<html><b style='color:#002b66;'>Retiro por Ventanilla (-)</b></html>", true);
+        rbDeposito.setBackground(Color.WHITE);
+        rbRetiro.setBackground(Color.WHITE);
+        ButtonGroup bgTrans = new ButtonGroup();
+        bgTrans.add(rbDeposito);
+        bgTrans.add(rbRetiro);
+        pnlRadioGroup.add(rbDeposito);
+        pnlRadioGroup.add(rbRetiro);
+
+        gbc.gridx = 1; gbc.gridwidth = 2; gbc.anchor = GridBagConstraints.WEST;
+        pnlPaso2.add(pnlRadioGroup, gbc);
+
+        // Fila 2: Monto
+        gbc.gridwidth = 1;
+        gbc.gridx = 0; gbc.gridy = 1; gbc.anchor = GridBagConstraints.EAST;
+        JLabel lblMontoLabel = new JLabel("<html><nobr>* Monto a Transar ($):</nobr></html>");
+        lblMontoLabel.setFont(labelFont);
+        pnlPaso2.add(lblMontoLabel, gbc);
+
+        txtMonto = new JTextField("850000", 15);
+        txtMonto.setFont(new Font("Consolas", Font.BOLD, 18));
+        txtMonto.setForeground(new Color(178, 34, 34));
+        txtMonto.setBackground(new Color(255, 251, 251));
+
+        gbc.gridx = 1; gbc.anchor = GridBagConstraints.WEST;
+        pnlPaso2.add(txtMonto, gbc);
+
+        JLabel lblSpecs = new JLabel("<html><div style='background-color:#f0f0f0; border:1px solid #ccc; padding:4px 8px; font-size:10px; color:#444;'>" +
+                "<b>Formato numérico:</b> Entero / Decimal<br>" +
+                "<b>Mínimo:</b> $ 10.000 COP | <b>Tope Caja:</b> $ 10.000.000 COP</div></html>");
+        gbc.gridx = 2; gbc.anchor = GridBagConstraints.WEST;
+        pnlPaso2.add(lblSpecs, gbc);
+
+        // Fila 3: Advertencia en tiempo real (Mensaje Rojo)
+        lblAdvertencia = new JLabel("");
+        lblAdvertencia.setFont(new Font("Tahoma", Font.BOLD, 11));
+        lblAdvertencia.setForeground(new Color(178, 34, 34));
+
+        gbc.gridx = 1; gbc.gridy = 2; gbc.gridwidth = 2; gbc.anchor = GridBagConstraints.WEST;
+        pnlPaso2.add(lblAdvertencia, gbc);
+
+        centerPanel.add(pnlPaso2);
+
+        add(centerPanel, BorderLayout.CENTER);
+
+        // 5. Panel Inferior (Botones y StatusBar)
+        JPanel bottomContainer = new JPanel(new BorderLayout());
+
+        JPanel pnlAcciones = new JPanel(new BorderLayout());
+        pnlAcciones.setBackground(new Color(223, 220, 206));
+        pnlAcciones.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(172, 168, 153)),
+                BorderFactory.createEmptyBorder(10, 14, 10, 14)
+        ));
+
+        JLabel lblShortcuts = new JLabel("<html><span style='color:#333; font-size:11px;'><b>[Enter]</b> Procesar &nbsp;|&nbsp; <b>[Esc]</b> Cancelar / Limpiar &nbsp;|&nbsp; <b>[F2]</b> Buscar por cédula &nbsp;|&nbsp; <b>[F5]</b> Limpiar</span></html>");
+
+        JPanel pnlBtnDerecha = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        pnlBtnDerecha.setOpaque(false);
+
+        btnLimpiar = new JButton("Limpiar Formulario (F5)");
+        btnProcesar = new JButton("Procesar Transacción");
+        btnProcesar.setFont(new Font("Tahoma", Font.BOLD, 12));
+        btnProcesar.setForeground(new Color(0, 43, 102));
+
+        pnlBtnDerecha.add(btnLimpiar);
+        pnlBtnDerecha.add(btnProcesar);
+
+        pnlAcciones.add(lblShortcuts, BorderLayout.WEST);
+        pnlAcciones.add(pnlBtnDerecha, BorderLayout.EAST);
+
+        JPanel statusBar = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        statusBar.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(172, 168, 153)));
+        statusBar.add(new JLabel("Estado: Activo | Oracle DB: 192.168.1.104:1521/UNICADB | Caja: #03"));
+
+        bottomContainer.add(pnlAcciones, BorderLayout.NORTH);
+        bottomContainer.add(statusBar, BorderLayout.SOUTH);
+        add(bottomContainer, BorderLayout.SOUTH);
+
+        // =========================================================
+        // 6. EVENTOS, ATAJOS Y EVALUACIÓN EN TIEMPO REAL
+        // =========================================================
+
+        btnVerificar.addActionListener(e -> verificarCuenta());
+        btnProcesar.addActionListener(e -> procesarTransaccion());
+        btnLimpiar.addActionListener(e -> limpiarFormulario());
+
+        rbDeposito.addActionListener(e -> evaluarExcesoMonto());
+        rbRetiro.addActionListener(e -> evaluarExcesoMonto());
+
+        // Listener dinámico en tiempo real para el campo de monto
+        txtMonto.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) { evaluarExcesoMonto(); }
+            @Override
+            public void removeUpdate(DocumentEvent e) { evaluarExcesoMonto(); }
+            @Override
+            public void changedUpdate(DocumentEvent e) { evaluarExcesoMonto(); }
+        });
+
+        // Evaluación inicial
+        evaluarExcesoMonto();
+
+        // Registrar atajos de teclado
+        configurarAtajosTeclado();
+    }
+
+    private void evaluarExcesoMonto() {
+        if (!rbRetiro.isSelected()) {
+            lblAdvertencia.setText("");
+            return;
+        }
+
+        String texto = txtMonto.getText().trim().replace(".", "").replace(",", ".");
+        if (texto.isEmpty()) {
+            lblAdvertencia.setText("");
+            return;
+        }
+
+        try {
+            double monto = Double.parseDouble(texto);
+            if (monto > saldoActual) {
+                DecimalFormat df = new DecimalFormat("#,##0.00 COP");
+                lblAdvertencia.setText("<html>⚠ El monto ingresado ($ " + df.format(monto) + ") excede el saldo disponible actual ($ " + df.format(saldoActual) + ").</html>");
+            } else {
+                lblAdvertencia.setText("");
+            }
+        } catch (NumberFormatException ex) {
+            lblAdvertencia.setText("");
+        }
+    }
+
+    private void buscarPorCedula() {
+        String cedula = JOptionPane.showInputDialog(this, 
+                "Ingrese el número de Cédula (C.C.) del Titular para buscar su cuenta:", 
+                "Búsqueda Rápida de Cuenta [F2]", 
+                JOptionPane.QUESTION_MESSAGE);
+        
+        if (cedula != null && !cedula.trim().isEmpty()) {
+            cedula = cedula.trim();
+            if (cedula.equals("1144089231")) {
+                txtNumCuenta.setText("4102-8849-1029");
+                verificarCuenta();
+                JOptionPane.showMessageDialog(this, "Cuenta asociada encontrada e ingresada exitosamente.", "Búsqueda por Cédula", JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this, "No se encontraron cuentas activas registradas para la cédula: " + cedula, "Sin Resultados", JOptionPane.WARNING_MESSAGE);
+            }
+        }
+    }
+
+    private void verificarCuenta() {
+        if (txtNumCuenta.getText().trim().equals("4102-8849-1029")) {
+            lblTitular.setText("<html><span style='color:#666;'>Titular:</span><br><b>Carlos Alberto Gómez Ramírez</b></html>");
+            lblIdentificacion.setText("<html><span style='color:#666;'>Identificación (C.C.):</span><br><b style='font-family:monospace;'>1144089231</b></html>");
+            lblTipoCuenta.setText("<html><span style='color:#666;'>Tipo de Producto:</span><br><b style='color:#002b66;'>Cuenta de Ahorros Tradicional</b></html>");
+            lblSaldo.setText("<html><span style='color:#666;'>Saldo Disponible Actual:</span><br><b style='color:#006600; font-family:monospace; background-color:#e6ffe6; padding:2px;'>$ 350.000,00 COP</b></html>");
+            saldoActual = 350000.00;
+            estadoCuentaActual = "ACTIVA";
+            evaluarExcesoMonto();
+        } else {
+            JOptionPane.showMessageDialog(this, "Número de cuenta no encontrado en la base de datos central.", "Verificación", JOptionPane.WARNING_MESSAGE);
+        }
+    }
+
+    private void limpiarFormulario() {
+        txtMonto.setText("");
+        rbRetiro.setSelected(true);
+        lblAdvertencia.setText("");
+        txtMonto.requestFocus();
+    }
+
+    private void procesarTransaccion() {
+        String montoTexto = txtMonto.getText().trim().replace(".", "").replace(",", ".");
+        
+        if (montoTexto.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Por favor ingrese el monto a transar.", "Validación", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        double monto;
+        try {
+            monto = Double.parseDouble(montoTexto);
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "Monto inválido. Ingrese solo caracteres numéricos.", "Error de Formato", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        if (estadoCuentaActual.equalsIgnoreCase("INACTIVA")) {
+            JOptionPane.showMessageDialog(this,
+                    "Operación rechazada: La cuenta receptora/origen no admite movimientos por encontrarse en estado inactivo.",
+                    "Error en Operación Bancaria - Cuenta Inactiva",
+                    JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        DecimalFormat df = new DecimalFormat("$ #,##0.00 COP");
+
+        if (rbRetiro.isSelected()) {
+            if (monto > saldoActual) {
+                double deficit = monto - saldoActual;
+                String detalleError = "No es posible procesar la transacción solicitada.\n\n" +
+                        "El sistema de validación del Banco Unicatolica ha rechazado la operación de retiro debido a la siguiente infracción de reglas de negocio:\n\n" +
+                        "• Cuenta: " + txtNumCuenta.getText() + " (Titular: Carlos Gómez)\n" +
+                        "• Saldo actual disponible: " + df.format(saldoActual) + "\n" +
+                        "• Monto solicitado de retiro: " + df.format(monto) + "\n" +
+                        "• Déficit no autorizado: -" + df.format(deficit) + "\n\n" +
+                        "Por favor rectifique el importe con el cliente o solicite un depósito previo.";
+
+                JOptionPane.showMessageDialog(this, detalleError, "Error en Operación Bancaria - Saldo Insuficiente", JOptionPane.ERROR_MESSAGE);
+            } else {
+                saldoActual -= monto;
+                lblSaldo.setText("<html><span style='color:#666;'>Saldo Disponible Actual:</span><br><b style='color:#006600; font-family:monospace; background-color:#e6ffe6; padding:2px;'>" + df.format(saldoActual) + "</b></html>");
+                evaluarExcesoMonto();
+                JOptionPane.showMessageDialog(this, "Retiro procesado exitosamente.\nNuevo saldo: " + df.format(saldoActual), "Transacción Exitosa", JOptionPane.INFORMATION_MESSAGE);
+            }
+        } else {
+            saldoActual += monto;
+            lblSaldo.setText("<html><span style='color:#666;'>Saldo Disponible Actual:</span><br><b style='color:#006600; font-family:monospace; background-color:#e6ffe6; padding:2px;'>" + df.format(saldoActual) + "</b></html>");
+            evaluarExcesoMonto();
+            JOptionPane.showMessageDialog(this, "Depósito procesado exitosamente.\nNuevo saldo: " + df.format(saldoActual), "Transacción Exitosa", JOptionPane.INFORMATION_MESSAGE);
+        }
+    }
+
+    private void configurarAtajosTeclado() {
+        JComponent rootPane = this.getRootPane();
+
+        rootPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0), "buscarF2");
+        rootPane.getActionMap().put("buscarF2", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                buscarPorCedula();
+            }
+        });
+
+        rootPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0), "limpiarForm");
+        rootPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "limpiarForm");
+        rootPane.getActionMap().put("limpiarForm", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                limpiarFormulario();
+            }
+        });
+
+        rootPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "procesarEnter");
+        rootPane.getActionMap().put("procesarEnter", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                procesarTransaccion();
+            }
+        });
+    }
+
+    public static void main(String[] args) {
+        try { UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()); } catch (Exception e) {}
+        SwingUtilities.invokeLater(() -> new VentanillaCajaView().setVisible(true));
+    }
+}
