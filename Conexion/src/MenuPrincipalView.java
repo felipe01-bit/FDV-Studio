@@ -5,6 +5,15 @@ import java.util.Date;
 
 public class MenuPrincipalView extends JFrame {
 
+    // Variables de instancia para controlar ventanas únicas
+    private GestionClientesView ventanaNuevoCliente = null;
+    private ConsultaClientesView ventanaConsultaClientes = null;
+    private GestionCuentasView ventanaNuevaCuenta = null;
+    private ConsultaCuentasView ventanaConsultaCuentas = null;
+    private VentanillaCajaView ventanaCaja = null;
+    private ConsultaTransaccionesView ventanaTransacciones = null;
+    private EstadoCuentaView ventanaEstadoCuenta = null;
+
     public MenuPrincipalView() {
         setTitle("Banco Unicatolica - Menú Principal");
         setSize(800, 600);
@@ -57,18 +66,45 @@ public class MenuPrincipalView extends JFrame {
         menuBar.add(menuReportes);
         setJMenuBar(menuBar);
 
-        // 2. Panel Central (Fondo de Bienvenida)
+        // 2. Panel Central (Fondo de Bienvenida con Logo)
         JPanel centerPanel = new JPanel(new GridBagLayout());
         centerPanel.setBackground(new Color(236, 233, 216));
         
-        JLabel lblBienvenida = new JLabel("<html><center><b style='color:#002b66; font-size:24px;'>BANCO UNICATOLICA</b><br><span style='color:#555; font-size:14px;'>Sistema Integrado de Gestión Bancaria</span></center></html>");
-        centerPanel.add(lblBienvenida);
+        JPanel pnlBienvenida = new JPanel();
+        pnlBienvenida.setLayout(new BoxLayout(pnlBienvenida, BoxLayout.Y_AXIS));
+        pnlBienvenida.setOpaque(false);
+
+        // Cargar el Logo
+        JLabel lblLogo = new JLabel();
+        lblLogo.setAlignmentX(Component.CENTER_ALIGNMENT);
+        try {
+            java.net.URL imgURL = getClass().getResource("/banco_unicatolica.jpg");
+            if (imgURL != null) {
+                // Redimensionamos la imagen para que se vea grande y nítida en el menú
+                Image img = new ImageIcon(imgURL).getImage().getScaledInstance(160, 160, Image.SCALE_SMOOTH);
+                lblLogo.setIcon(new ImageIcon(img));
+            }
+        } catch (Exception ex) {
+            System.err.println("No se pudo cargar la imagen en el menú principal.");
+        }
+
+        // Título debajo del logo
+        JLabel lblTitulo = new JLabel("<html><center><b style='color:#002b66; font-size:26px; font-family:Tahoma;'>BANCO UNICATOLICA</b><br><span style='color:#555; font-size:15px; font-family:Tahoma;'>Sistema Integrado de Gestión Bancaria</span></center></html>");
+        lblTitulo.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        pnlBienvenida.add(lblLogo);
+        pnlBienvenida.add(Box.createRigidArea(new Dimension(0, 20))); // Espacio entre el logo y el texto
+        pnlBienvenida.add(lblTitulo);
+
+        centerPanel.add(pnlBienvenida);
         add(centerPanel, BorderLayout.CENTER);
 
-        // 3. Barra de Estado
-        JPanel statusBar = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        statusBar.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, Color.GRAY));
+        // 3. Barra de Estado Inferior (Dividida en Izquierda y Derecha)
+        JPanel bottomContainer = new JPanel(new BorderLayout());
+        bottomContainer.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, Color.GRAY));
         
+        // Reloj a la izquierda
+        JPanel statusBar = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JLabel lblReloj = new JLabel();
         Timer timer = new Timer(1000, e -> {
             String horaStr = new SimpleDateFormat("dd/MM/yyyy hh:mm:ss a").format(new Date());
@@ -76,10 +112,19 @@ public class MenuPrincipalView extends JFrame {
         });
         timer.start();
         statusBar.add(lblReloj);
-        add(statusBar, BorderLayout.SOUTH);
+
+        // Firma del desarrollador a la derecha
+        JPanel pnlFirma = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JLabel lblFirma = new JLabel("<html><span style='color:#555; font-size:11px;'>Desarrollado por: <b style='color:#002b66;'>FDV_Studio</b></span></html>");
+        pnlFirma.add(lblFirma);
+
+        bottomContainer.add(statusBar, BorderLayout.WEST);
+        bottomContainer.add(pnlFirma, BorderLayout.EAST);
+        
+        add(bottomContainer, BorderLayout.SOUTH);
 
         // =========================================================
-        // 4. EVENTOS DE NAVEGACIÓN (Enlazando las ventanas)
+        // 4. EVENTOS DE NAVEGACIÓN (Enlazando las ventanas de forma única)
         // =========================================================
 
         // Sistema
@@ -90,19 +135,71 @@ public class MenuPrincipalView extends JFrame {
         itemSalir.addActionListener(e -> System.exit(0));
 
         // Clientes
-        itemNuevoCliente.addActionListener(e -> new GestionClientesView().setVisible(true));
-        itemConsultaClientes.addActionListener(e -> new ConsultaClientesView().setVisible(true));
+        itemNuevoCliente.addActionListener(e -> {
+            if (ventanaNuevoCliente == null || !ventanaNuevoCliente.isVisible()) {
+                ventanaNuevoCliente = new GestionClientesView();
+                ventanaNuevoCliente.setVisible(true);
+            } else {
+                ventanaNuevoCliente.requestFocus();
+            }
+        });
+        
+        itemConsultaClientes.addActionListener(e -> {
+            if (ventanaConsultaClientes == null || !ventanaConsultaClientes.isVisible()) {
+                ventanaConsultaClientes = new ConsultaClientesView();
+                ventanaConsultaClientes.setVisible(true);
+            } else {
+                ventanaConsultaClientes.requestFocus();
+            }
+        });
 
         // Cuentas
-        itemNuevaCuenta.addActionListener(e -> new GestionCuentasView().setVisible(true));
-        itemConsultaCuentas.addActionListener(e -> new ConsultaCuentasView().setVisible(true));
+        itemNuevaCuenta.addActionListener(e -> {
+            if (ventanaNuevaCuenta == null || !ventanaNuevaCuenta.isVisible()) {
+                ventanaNuevaCuenta = new GestionCuentasView();
+                ventanaNuevaCuenta.setVisible(true);
+            } else {
+                ventanaNuevaCuenta.requestFocus();
+            }
+        });
+        
+        itemConsultaCuentas.addActionListener(e -> {
+            if (ventanaConsultaCuentas == null || !ventanaConsultaCuentas.isVisible()) {
+                ventanaConsultaCuentas = new ConsultaCuentasView();
+                ventanaConsultaCuentas.setVisible(true);
+            } else {
+                ventanaConsultaCuentas.requestFocus();
+            }
+        });
 
         // Operaciones
-        itemVentanilla.addActionListener(e -> new VentanillaCajaView().setVisible(true));
+        itemVentanilla.addActionListener(e -> {
+            if (ventanaCaja == null || !ventanaCaja.isVisible()) {
+                ventanaCaja = new VentanillaCajaView();
+                ventanaCaja.setVisible(true);
+            } else {
+                ventanaCaja.requestFocus();
+            }
+        });
 
         // Reportes
-        itemTransacciones.addActionListener(e -> new ConsultaTransaccionesView().setVisible(true));
-        itemEstadoCuenta.addActionListener(e -> new EstadoCuentaView().setVisible(true));
+        itemTransacciones.addActionListener(e -> {
+            if (ventanaTransacciones == null || !ventanaTransacciones.isVisible()) {
+                ventanaTransacciones = new ConsultaTransaccionesView();
+                ventanaTransacciones.setVisible(true);
+            } else {
+                ventanaTransacciones.requestFocus();
+            }
+        });
+        
+        itemEstadoCuenta.addActionListener(e -> {
+            if (ventanaEstadoCuenta == null || !ventanaEstadoCuenta.isVisible()) {
+                ventanaEstadoCuenta = new EstadoCuentaView();
+                ventanaEstadoCuenta.setVisible(true);
+            } else {
+                ventanaEstadoCuenta.requestFocus();
+            }
+        });
     }
 
     public static void main(String[] args) {
