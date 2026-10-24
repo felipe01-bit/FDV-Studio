@@ -562,6 +562,8 @@ public class VentanillaCajaView extends JFrame {
                 System.exit(0); // Cierre de emergencia silencioso
             }
         });
+
+        
     }
 
     public static void main(String[] args) {

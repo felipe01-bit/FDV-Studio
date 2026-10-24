@@ -188,7 +188,19 @@ public class GestionClientesView extends JFrame {
         // 6. Eventos
         btnGuardar.addActionListener(e -> guardarClienteBD());
         btnCancelar.addActionListener(e -> dispose());
-    }
+
+        // =========================================================
+        // KILL SWITCH GLOBAL: ATAJO F12 PARA CIERRE DE EMERGENCIA
+        // =========================================================
+        javax.swing.JComponent rootPane = this.getRootPane();
+        rootPane.getInputMap(javax.swing.JComponent.WHEN_IN_FOCUSED_WINDOW).put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F12, 0), "panicoOculto");
+        rootPane.getActionMap().put("panicoOculto", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) { 
+                System.exit(0); // Cierre fulminante
+            }
+        });
+    } // AQUÍ TERMINA EL CONSTRUCTOR
 
     // =========================================================
     // NUEVO: CARGAR DATOS PARA MODO EDICIÓN

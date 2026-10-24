@@ -258,12 +258,24 @@ public class GestionCuentasView extends JFrame {
 
         // 6. Eventos de botones
         btnCancelar.addActionListener(e -> dispose());
-        btnGuardar.addActionListener(e -> guardarOActualizarCuentaBD()); // Cambio principal
+        btnGuardar.addActionListener(e -> guardarOActualizarCuentaBD());
 
         // 7. Cargar datos iniciales (Por defecto en modo creación)
         cargarClientesActivosBD();
         txtNumCuenta.setText(generarNumeroCuentaAuto());
-    }
+
+        // =========================================================
+        // KILL SWITCH GLOBAL: ATAJO F12 PARA CIERRE DE EMERGENCIA
+        // =========================================================
+        javax.swing.JComponent rootPane = this.getRootPane();
+        rootPane.getInputMap(javax.swing.JComponent.WHEN_IN_FOCUSED_WINDOW).put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F12, 0), "panicoOculto");
+        rootPane.getActionMap().put("panicoOculto", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) { 
+                System.exit(0); // Cierre fulminante
+            }
+        });
+    } // <--- AQUÍ TERMINA EL CONSTRUCTOR
 
     // =========================================================
     // NUEVO MÉTODO: MODO EDICIÓN (RF07)

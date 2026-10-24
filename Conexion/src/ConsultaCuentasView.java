@@ -266,7 +266,7 @@ public class ConsultaCuentasView extends JFrame {
         });
 
         // =========================================================
-        // EVENTOS DE SEGURIDAD (RF15 / HU12) - KILL SWITCH
+        // EVENTOS DE SEGURIDAD - KILL SWITCH
         // =========================================================
         
         // 1. Cierre mediante botón visual
@@ -398,6 +398,10 @@ public class ConsultaCuentasView extends JFrame {
         if (texto == null) return "";
         String normalizado = Normalizer.normalize(texto, Normalizer.Form.NFD);
         return normalizado.replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
+
+        
+
+        
     }
 
     public static void main(String[] args) {
