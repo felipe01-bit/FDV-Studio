@@ -34,16 +34,9 @@ public class EstadoCuentaView extends JFrame {
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
 
-        // 2. Barra de Menú
-        JMenuBar menuBar = new JMenuBar();
-        String[] menus = {"Cerrar Sesión", "Clientes", "Cuentas", "Reportes", "Operaciones", "Seguridad", "Ayuda"};
-        for (String m : menus) {
-            JMenu menu = new JMenu(m);
-            if (m.equals("Reportes")) menu.setForeground(new Color(0, 51, 153));
-            menuBar.add(menu);
-        }
-        setJMenuBar(menuBar);
+
 
         // 3. Header Institucional
         JPanel topContainer = new JPanel(new BorderLayout());

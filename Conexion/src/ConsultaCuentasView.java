@@ -31,17 +31,8 @@ public class ConsultaCuentasView extends JFrame {
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
-
-        // 2. Barra de Menú
-        JMenuBar menuBar = new JMenuBar();
-        String[] menus = {"Cerrar Sesión", "Clientes", "Cuentas", "Operaciones (Caja)", "Reportes", "Seguridad", "Ayuda"};
-        for (String m : menus) {
-            JMenu menu = new JMenu(m);
-            if (m.equals("Cuentas")) menu.setForeground(new Color(0, 51, 153));
-            menuBar.add(menu);
-        }
-        setJMenuBar(menuBar);
-
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
+   
         // 3. Header Institucional
         JPanel topContainer = new JPanel(new BorderLayout());
         topContainer.setBackground(new Color(236, 233, 216));

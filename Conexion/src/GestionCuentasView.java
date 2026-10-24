@@ -14,7 +14,6 @@ import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Random;
-
 import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
 import javax.swing.ImageIcon;
@@ -22,8 +21,6 @@ import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JMenu;
-import javax.swing.JMenuBar;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
@@ -52,16 +49,9 @@ public class GestionCuentasView extends JFrame {
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
 
-        // 2. Barra de Menú
-        JMenuBar menuBar = new JMenuBar();
-        String[] menus = {"Cerrar Sesión", "Clientes", "Cuentas", "Operaciones (Caja)", "Reportes", "Seguridad", "Ayuda"};
-        for (String m : menus) {
-            JMenu menu = new JMenu(m);
-            if(m.equals("Cuentas")) menu.setForeground(new Color(0, 51, 153));
-            menuBar.add(menu);
-        }
-        setJMenuBar(menuBar);
+   
 
         // 3. Panel Superior (Header Institucional)
         JPanel topContainer = new JPanel(new BorderLayout());

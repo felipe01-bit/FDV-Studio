@@ -19,8 +19,7 @@ import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JMenu;
-import javax.swing.JMenuBar;
+
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
@@ -46,14 +45,9 @@ public class GestionClientesView extends JFrame {
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
 
-        // 2. Barra de Menú
-        JMenuBar menuBar = new JMenuBar();
-        String[] menus = {"Cerrar Sesion", "Clientes", "Cuentas", "Operaciones", "Reportes", "Ayuda"};
-        for (String m : menus) {
-            menuBar.add(new JMenu(m));
-        }
-        setJMenuBar(menuBar);
+
 
         // 3. Panel Superior (Header)
         JPanel topContainer = new JPanel(new BorderLayout());
