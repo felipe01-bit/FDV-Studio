@@ -6,6 +6,7 @@ import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -20,12 +21,13 @@ public class ConsultaCuentasView extends JFrame {
     private JTable tablaCuentas;
     private DefaultTableModel modeloTabla;
     private JButton btnBuscar, btnLimpiar, btnModificar, btnNueva, btnExtracto, btnEliminar;
+    private JButton btnEmergencia, btnDesbloquear; 
 
     public ConsultaCuentasView() {
         // 1. Configuración de la Ventana Principal
         setTitle("Banco Unicatolica - Consulta de Cuentas y Baja Lógica");
-        setSize(980, 620);
-        setMinimumSize(new Dimension(930, 600));
+        setSize(1100, 620); 
+        setMinimumSize(new Dimension(1000, 600));
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
@@ -148,11 +150,24 @@ public class ConsultaCuentasView extends JFrame {
         pnlIzquierda.add(btnNueva);
         pnlIzquierda.add(btnExtracto);
 
+        // Botones de seguridad en el panel derecho
         JPanel pnlDerecha = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        
+        btnDesbloquear = new JButton("🔓 Desbloquear");
+        btnDesbloquear.setFont(new Font("Tahoma", Font.BOLD, 11));
+        
+        btnEmergencia = new JButton("🚨 BLOQUEO (F12)");
+        btnEmergencia.setBackground(new Color(204, 0, 0));
+        btnEmergencia.setForeground(Color.WHITE);
+        btnEmergencia.setFont(new Font("Tahoma", Font.BOLD, 11));
+
         btnEliminar = new JButton("Eliminar Cuenta");
         btnEliminar.setForeground(new Color(170, 34, 34));
         btnEliminar.setFont(new Font("Tahoma", Font.BOLD, 11));
-        pnlDerecha.add(new JLabel("<html><span style='color:#aa2222; font-size:11px;'>Acción de Auditoría:</span></html>"));
+        
+        pnlDerecha.add(btnDesbloquear);
+        pnlDerecha.add(btnEmergencia);
+        pnlDerecha.add(new JLabel(" | "));
         pnlDerecha.add(btnEliminar);
 
         pnlAcciones.add(pnlIzquierda, BorderLayout.WEST);
@@ -205,143 +220,133 @@ public class ConsultaCuentasView extends JFrame {
             sorter.setRowFilter(null);
         });
 
-    // =========================================================
-        // Evento Modificar Cuenta (RF07) - CON ACTUALIZACIÓN AUTOMÁTICA
-        // =========================================================
-        btnModificar.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                int filaVisual = tablaCuentas.getSelectedRow();
-                
-                if (filaVisual == -1) {
-                    JOptionPane.showMessageDialog(ConsultaCuentasView.this, 
-                            "Por favor, seleccione una cuenta de la tabla para modificar sus parámetros.", 
-                            "Atención", JOptionPane.WARNING_MESSAGE);
-                    return;
+        // Evento Modificar Cuenta (RF07)
+        btnModificar.addActionListener(e -> {
+            int filaVisual = tablaCuentas.getSelectedRow();
+            if (filaVisual == -1) {
+                JOptionPane.showMessageDialog(this, "Por favor, seleccione una cuenta de la tabla para modificar sus parámetros.", "Atención", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            int filaModelo = tablaCuentas.convertRowIndexToModel(filaVisual);
+            String numCuenta = modeloTabla.getValueAt(filaModelo, 0).toString();
+
+            GestionCuentasView vistaEdicion = new GestionCuentasView();
+            vistaEdicion.prepararEdicion(numCuenta); 
+            
+            vistaEdicion.addWindowListener(new java.awt.event.WindowAdapter() {
+                @Override
+                public void windowClosed(java.awt.event.WindowEvent windowEvent) {
+                    cargarDatosTabla(); 
                 }
-
-                int filaModelo = tablaCuentas.convertRowIndexToModel(filaVisual);
-                String numCuenta = modeloTabla.getValueAt(filaModelo, 0).toString();
-
-                GestionCuentasView vistaEdicion = new GestionCuentasView();
-                vistaEdicion.prepararEdicion(numCuenta); 
-                
-                // ESTA ES LA MAGIA: Al cerrarse la ventana de edición, recargamos la tabla
-                vistaEdicion.addWindowListener(new java.awt.event.WindowAdapter() {
-                    @Override
-                    public void windowClosed(java.awt.event.WindowEvent windowEvent) {
-                        cargarDatosTabla(); // Vuelve a hacer el SELECT a la BD
-                    }
-                });
-                
-                vistaEdicion.setVisible(true);
-            }
+            });
+            vistaEdicion.setVisible(true);
         });
 
-        // =========================================================
-        // Evento Nueva Cuenta - CON ACTUALIZACIÓN AUTOMÁTICA
-        // =========================================================
-        btnNueva.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                GestionCuentasView vistaNueva = new GestionCuentasView();
-                
-                // Al cerrarse la ventana de creación, recargamos la tabla
-                vistaNueva.addWindowListener(new java.awt.event.WindowAdapter() {
-                    @Override
-                    public void windowClosed(java.awt.event.WindowEvent windowEvent) {
-                        cargarDatosTabla(); // Muestra la cuenta recién creada
-                    }
-                });
-                
-                vistaNueva.setVisible(true);
-            }
+        // Evento Nueva Cuenta
+        btnNueva.addActionListener(e -> {
+            GestionCuentasView vistaNueva = new GestionCuentasView();
+            vistaNueva.addWindowListener(new java.awt.event.WindowAdapter() {
+                @Override
+                public void windowClosed(java.awt.event.WindowEvent windowEvent) {
+                    cargarDatosTabla(); 
+                }
+            });
+            vistaNueva.setVisible(true);
         });
+
         // Evento Generar Extracto (RF12)
-        btnExtracto.addActionListener(new ActionListener() {
+        btnExtracto.addActionListener(e -> {
+            int filaVisual = tablaCuentas.getSelectedRow();
+            if (filaVisual == -1) {
+                JOptionPane.showMessageDialog(this, "Por favor, seleccione una cuenta para generar su extracto.", "Atención", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            EstadoCuentaView vistaExtracto = new EstadoCuentaView();
+            vistaExtracto.setVisible(true);
+        });
+
+        // =========================================================
+        // EVENTOS DE SEGURIDAD (RF15 / HU12) - KILL SWITCH
+        // =========================================================
+        
+        // 1. Cierre mediante botón visual
+        btnEmergencia.addActionListener(e -> {
+            System.exit(0); // Apaga el sistema inmediatamente
+        });
+
+        // 2. Cierre silencioso mediante tecla F12
+        JComponent rootPane = this.getRootPane();
+        rootPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_F12, 0), "panicoOculto");
+        rootPane.getActionMap().put("panicoOculto", new AbstractAction() {
             @Override
-            public void actionPerformed(ActionEvent e) {
-                int filaVisual = tablaCuentas.getSelectedRow();
-                
-                if (filaVisual == -1) {
-                    JOptionPane.showMessageDialog(ConsultaCuentasView.this, 
-                            "Por favor, seleccione una cuenta para generar su extracto.", 
-                            "Atención", JOptionPane.WARNING_MESSAGE);
-                    return;
-                }
-
-                int filaModelo = tablaCuentas.convertRowIndexToModel(filaVisual);
-                String numCuenta = modeloTabla.getValueAt(filaModelo, 0).toString();
-
-                // AQUÍ ABRIMOS LA VENTANA DE ESTADO DE CUENTA
-                // Cambia 'EstadoCuentaView' por el nombre de tu clase real
-                EstadoCuentaView vistaExtracto = new EstadoCuentaView();
-                
-                // Si tienes un método para cargar el historial, llámalo aquí:
-                // vistaExtracto.cargarHistorial(numCuenta);
-                
-                vistaExtracto.setVisible(true);
+            public void actionPerformed(ActionEvent e) { 
+                System.exit(0); // Cierre de emergencia silencioso
             }
         });
 
-        // Evento Eliminar Cuenta (Borrado Físico directo en la base de datos)
-        btnEliminar.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                int filaVisual = tablaCuentas.getSelectedRow();
-                if (filaVisual == -1) {
-                    JOptionPane.showMessageDialog(ConsultaCuentasView.this, 
-                            "Por favor, seleccione una cuenta de la tabla para eliminar.", 
-                            "Atención", JOptionPane.WARNING_MESSAGE);
-                    return;
+        btnDesbloquear.addActionListener(e -> {
+            int filaVisual = tablaCuentas.getSelectedRow();
+            if (filaVisual == -1) {
+                JOptionPane.showMessageDialog(this, "Seleccione una cuenta de la tabla para desbloquear.", "Atención", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            
+            int filaModelo = tablaCuentas.convertRowIndexToModel(filaVisual);
+            String estadoActual = modeloTabla.getValueAt(filaModelo, 3).toString();
+            
+            if (!estadoActual.equals("BLOQUEO PREVENTIVO")) {
+                JOptionPane.showMessageDialog(this, "Esta cuenta no se encuentra bajo Bloqueo Preventivo.", "Aviso", JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+            
+            JPasswordField pf = new JPasswordField();
+            int ok = JOptionPane.showConfirmDialog(this, pf, "Credenciales de Supervisor Requeridas", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
+            
+            if (ok == JOptionPane.OK_OPTION) {
+                String clave = new String(pf.getPassword());
+                if ("admin123".equals(clave)) {
+                    String numCuenta = modeloTabla.getValueAt(filaModelo, 0).toString();
+                    cambiarEstadoCuentaBD(numCuenta, "ACTIVA");
+                    JOptionPane.showMessageDialog(this, "Cuenta reactivada exitosamente a estado ACTIVA.", "Desbloqueo Autorizado", JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(this, "Contraseña de supervisor incorrecta.", "Acceso Denegado", JOptionPane.ERROR_MESSAGE);
                 }
+            }
+        });
 
-                int filaModelo = tablaCuentas.convertRowIndexToModel(filaVisual);
-                String numCuenta = modeloTabla.getValueAt(filaModelo, 0).toString();
-                String titular = modeloTabla.getValueAt(filaModelo, 1).toString();
+        // Evento Eliminar Cuenta
+        btnEliminar.addActionListener(e -> {
+            int filaVisual = tablaCuentas.getSelectedRow();
+            if (filaVisual == -1) {
+                JOptionPane.showMessageDialog(this, "Por favor, seleccione una cuenta de la tabla para eliminar.", "Atención", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
 
-                String mensaje = "¿Está seguro que desea eliminar DEFINITIVAMENTE esta cuenta?\n" +
-                        "Esta operación borrará el registro de la base de datos y no se podrá deshacer.\n\n" +
-                        "Número de Cuenta: " + numCuenta + "\n" +
-                        "Titular: " + titular;
+            int filaModelo = tablaCuentas.convertRowIndexToModel(filaVisual);
+            String numCuenta = modeloTabla.getValueAt(filaModelo, 0).toString();
+            String titular = modeloTabla.getValueAt(filaModelo, 1).toString();
 
-                int confirmacion = JOptionPane.showConfirmDialog(ConsultaCuentasView.this,
-                        mensaje, "Confirmación de Eliminación Física",
-                        JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+            String mensaje = "¿Está seguro que desea eliminar DEFINITIVAMENTE esta cuenta?\n" +
+                    "Esta operación borrará el registro de la base de datos y no se podrá deshacer.\n\n" +
+                    "Número de Cuenta: " + numCuenta + "\n" +
+                    "Titular: " + titular;
 
-                if (confirmacion == JOptionPane.YES_OPTION) {
-                    // SENTENCIA DELETE PARA BORRAR DE LA BD
-                    String sql = "DELETE FROM cuentas WHERE numero_cuenta = ?";
-                    
-                    try (Connection con = ConexionDB.conectar();
-                         PreparedStatement ps = con.prepareStatement(sql)) {
-                         
-                        ps.setString(1, numCuenta);
-                        int filas = ps.executeUpdate();
-                        
-                        if(filas > 0) {
-                            // Borra la fila de la tabla visualmente
-                            modeloTabla.removeRow(filaModelo);
-                            JOptionPane.showMessageDialog(ConsultaCuentasView.this,
-                                    "La cuenta ha sido eliminada permanentemente de la base de datos.",
-                                    "Eliminación Exitosa", JOptionPane.INFORMATION_MESSAGE);
-                        } else {
-                            JOptionPane.showMessageDialog(ConsultaCuentasView.this,
-                                    "No se encontró la cuenta en la base de datos.",
-                                    "Error", JOptionPane.ERROR_MESSAGE);
-                        }
-                    } catch (SQLException ex) {
-                        // Manejo de error si la cuenta ya tiene transacciones asociadas (Llave Foránea)
-                        if(ex.getErrorCode() == 1451) {
-                            JOptionPane.showMessageDialog(ConsultaCuentasView.this,
-                                "No se puede eliminar la cuenta porque ya tiene transacciones o historial asociado.\n" +
-                                "Debe eliminar primero las transacciones o aplicar una baja lógica.",
-                                "Error de Integridad Referencial", JOptionPane.ERROR_MESSAGE);
-                        } else {
-                            JOptionPane.showMessageDialog(ConsultaCuentasView.this,
-                                "Error al conectar con la base de datos:\n" + ex.getMessage(),
-                                "Error SQL", JOptionPane.ERROR_MESSAGE);
-                        }
+            int confirmacion = JOptionPane.showConfirmDialog(this, mensaje, "Confirmación de Eliminación Física", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+
+            if (confirmacion == JOptionPane.YES_OPTION) {
+                String sql = "DELETE FROM cuentas WHERE numero_cuenta = ?";
+                try (Connection con = ConexionDB.conectar(); PreparedStatement ps = con.prepareStatement(sql)) {
+                    ps.setString(1, numCuenta);
+                    int filas = ps.executeUpdate();
+                    if(filas > 0) {
+                        modeloTabla.removeRow(filaModelo);
+                        JOptionPane.showMessageDialog(this, "La cuenta ha sido eliminada permanentemente de la base de datos.", "Eliminación Exitosa", JOptionPane.INFORMATION_MESSAGE);
+                    }
+                } catch (SQLException ex) {
+                    if(ex.getErrorCode() == 1451) {
+                        JOptionPane.showMessageDialog(this, "No se puede eliminar la cuenta porque ya tiene transacciones o historial asociado.\nDebe eliminar primero las transacciones o aplicar una baja lógica.", "Error de Integridad Referencial", JOptionPane.ERROR_MESSAGE);
+                    } else {
+                        JOptionPane.showMessageDialog(this, "Error al conectar con la base de datos:\n" + ex.getMessage(), "Error SQL", JOptionPane.ERROR_MESSAGE);
                     }
                 }
             }
@@ -349,12 +354,11 @@ public class ConsultaCuentasView extends JFrame {
     }
 
     // =========================================================
-    // MÉTODO PARA CONSULTAR BD Y LLENAR TABLA
+    // MÉTODOS DE BASE DE DATOS Y UTILIDADES
     // =========================================================
+    
     private void cargarDatosTabla() {
-        modeloTabla.setRowCount(0); // Limpia la tabla
-        
-        // CORRECCIÓN APLICADA: Se usa c.tipo_cuenta
+        modeloTabla.setRowCount(0); 
         String sql = "SELECT c.numero_cuenta, CONCAT(cl.nombres, ' ', IFNULL(cl.apellidos, '')) AS titular, " +
                      "c.tipo_cuenta, c.estado, c.saldo " +
                      "FROM cuentas c " +
@@ -367,16 +371,26 @@ public class ConsultaCuentasView extends JFrame {
             while (rs.next()) {
                 String numeroCuenta = rs.getString("numero_cuenta");
                 String titular = rs.getString("titular").trim();
-                String tipo = rs.getString("tipo_cuenta"); // Uso de la columna correcta
+                String tipo = rs.getString("tipo_cuenta");
                 String estado = rs.getString("estado");
                 String saldo = String.format("$ %,.2f COP", rs.getDouble("saldo")); 
                 
                 modeloTabla.addRow(new Object[]{numeroCuenta, titular, tipo, estado, saldo});
             }
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, 
-                "Error al cargar las cuentas desde la base de datos:\n" + e.getMessage(), 
-                "Error SQL", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Error al cargar las cuentas desde la base de datos:\n" + e.getMessage(), "Error SQL", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void cambiarEstadoCuentaBD(String numCuenta, String nuevoEstado) {
+        String sql = "UPDATE cuentas SET estado = ? WHERE numero_cuenta = ?";
+        try (Connection con = ConexionDB.conectar(); PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, nuevoEstado);
+            ps.setString(2, numCuenta);
+            ps.executeUpdate();
+            cargarDatosTabla(); // Refrescar la tabla para ver el cambio inmediato
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Error al cambiar el estado de la cuenta: " + ex.getMessage(), "Error SQL", JOptionPane.ERROR_MESSAGE);
         }
     }
 
